@@ -22,9 +22,11 @@ backup before removal from Firestore.
   `America/New_York`. They roll over without a reset operation. Monthly ranking
   game counts also cover that month only.
 - Rebuild streaks in game-date order using the existing scheduled-night and
-  five-game-cycle rules. A streak describes attendance through the player's last
-  recorded game; the next check-in preview resets it if a scheduled night was
-  missed. Streak chips do not add ranking points.
+  five-game-cycle rules. Missing a dated, finalized game resets the active streak
+  and current award eligibility, even if the player never returns. Last-attended
+  dates and historical results remain intact. The next check-in preview also
+  resets the streak if a scheduled night was missed. Streak chips do not add
+  ranking points.
 - Count finalized empty/stopped games. Scheduled games and current check-ins do
   not add completed games or points.
 - Historical results for missing/deleted profiles count in league totals, but

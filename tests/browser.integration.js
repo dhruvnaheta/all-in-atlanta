@@ -63,7 +63,21 @@ test(
         await new Promise((r) => setTimeout(r, 100));
       }
       browser = await chromium.launch({ channel: "chrome", headless: true });
-      const page = await browser.newPage();
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      // Allow this suite to run alongside a developer's existing emulators.
+      for (const [port, host] of [
+        [8080, process.env.FIRESTORE_EMULATOR_HOST],
+        [9099, process.env.FIREBASE_AUTH_EMULATOR_HOST],
+        [5001, process.env.FUNCTIONS_EMULATOR_HOST],
+      ]) {
+        if (!host) continue;
+        await page.context().route(`http://127.0.0.1:${port}/**`, route => {
+          const url = new URL(route.request().url());
+          url.host = host;
+          return route.continue({ url: url.href });
+        });
+      }
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("console", (msg) => {
@@ -72,12 +86,12 @@ test(
       await page.goto("http://127.0.0.1:4174/?emulator=1");
       await page.waitForFunction(
         () =>
-          JSON.parse(localStorage.getItem("aia_v2_players") || "{}").alice
+          JSON.parse(localStorage.getItem("aia_emulator_v2_players") || "{}").alice
             ?.total === 10,
       );
       assert.ok(
         !(
-          await page.evaluate(() => localStorage.getItem("aia_v2_players"))
+          await page.evaluate(() => localStorage.getItem("aia_emulator_v2_players"))
         ).includes("private@example.com"),
       );
       await page.locator("#nav-account").click();
@@ -92,9 +106,37 @@ test(
         };
       });
       await page.waitForFunction(() => globalThis.testModules.auth.isAdmin());
+      const productionPage = await page.context().newPage();
+      await productionPage.route("https://identitytoolkit.googleapis.com/**", route => route.abort());
+      await productionPage.route("https://securetoken.googleapis.com/**", route => route.abort());
+      await productionPage.route("https://firestore.googleapis.com/**", route => route.abort());
+      await productionPage.goto("http://127.0.0.1:4174/");
+      await productionPage.waitForFunction(async () => {
+        const { getApps } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+        return getApps().some(app => app.name === "[DEFAULT]");
+      });
+      assert.equal(await productionPage.evaluate(async () => {
+        const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+        const auth = getAuth();
+        await auth.authStateReady();
+        const uid = auth.currentUser?.uid;
+        await signOut(auth);
+        return uid || null;
+      }), null);
+      await page.reload();
+      await page.waitForFunction(async () => (await import("/js/auth.js")).isAdmin());
+      await page.evaluate(async () => {
+        globalThis.testModules = {
+          auth: await import("/js/auth.js"),
+          store: await import("/js/store.js"),
+          state: await import("/js/state.js"),
+        };
+      });
+      await productionPage.close();
+
       await page.waitForFunction(
         () =>
-          globalThis.testModules.store.LS.get("players").alice.email ===
+          globalThis.testModules.store.LS.get("players", {}).alice?.email ===
           "private@example.com",
       );
       await page.evaluate(async () => {

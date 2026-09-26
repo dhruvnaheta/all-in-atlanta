@@ -21,6 +21,12 @@ async function writable(db, tx) {
 }
 export async function savePatches(db, request) {
   const { patches, activeGameId } = request || {};
+  if (
+    !Object.hasOwn(request || {}, "activeGameId") ||
+    (activeGameId !== null &&
+      (typeof activeGameId !== "string" || !activeGameId.trim()))
+  )
+    throw new Error("An explicit activeGameId (or null) is required.");
   if (!Array.isArray(patches) || patches.length > 490)
     throw new Error("Invalid edit size.");
   if (!patches.length) return { saved: true };
@@ -58,10 +64,7 @@ export async function savePatches(db, request) {
   return db.runTransaction(async (tx) => {
     await writable(db, tx);
     const current = await tx.get(db.doc(`${LEAGUE_PATH}/settings/current`));
-    if (
-      activeGameId !== undefined &&
-      current.data()?.activeGameId !== activeGameId
-    )
+    if ((current.data()?.activeGameId ?? null) !== activeGameId)
       throw new Error("The active game changed. Refresh before editing.");
     const refs = patches.map((p) => db.doc(`${LEAGUE_PATH}/${p.path}`));
     const snapshots = await tx.getAll(...refs);

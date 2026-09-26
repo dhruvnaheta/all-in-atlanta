@@ -107,6 +107,57 @@ test("streaks replay in date order, complete five, reset after missed scheduled 
     1,
   );
 });
+test("absent players lose stale badges while latest attendees keep their streaks", () => {
+  const roster = { ...profiles, ryan: { dn: "Ryan Eck" } };
+  const history = [
+    record("aug4", "Aug 4, 2026", 1, {
+      results: [{ key: "ryan", pts: 1, pos: "p" }],
+    }),
+    record("aug6", "Aug 6, 2026", 1, {
+      results: [{ key: "ryan", pts: 1, pos: "p" }],
+    }),
+    record("sep23", "Sep 23, 2026"),
+    record("sep24", "Sep 24, 2026"),
+  ];
+  assert.equal(
+    calculateStats(roster, history.slice(0, 2), now).players.ryan.currentStreak,
+    2,
+  );
+  const { players } = calculateStats(roster, [...history].reverse(), now);
+  assert.equal(players.ryan.currentStreak, 0);
+  assert.equal(players.ryan.lastGameDate, "2026-08-06");
+  assert.equal(players.ryan.lastStreakGameId, "aug6");
+  assert.equal(players.ryan.games, 2);
+  assert.equal(players.ryan.total, 2);
+  assert.equal(players.a.currentStreak, 2);
+});
+test("missing the latest game clears a completed cycle and returning starts at one", () => {
+  const history = [
+    "Sep 14, 2026",
+    "Sep 16, 2026",
+    "Sep 17, 2026",
+    "Sep 21, 2026",
+    "Sep 23, 2026",
+  ].map((date, i) => record(String(i), date));
+  history.push(
+    record("missed", "Sep 24, 2026", 1, {
+      results: [{ key: "deleted", pts: 1, pos: "p" }],
+    }),
+  );
+  const player = calculateStats(profiles, history, now).players.a;
+  assert.equal(player.currentStreak, 0);
+  assert.equal(player.streakAwardDue, false);
+  assert.equal(player.streakAwardAtGameId, null);
+  assert.equal(player.games, 5);
+  assert.equal(
+    calculateStats(
+      profiles,
+      [...history, record("return", "Sep 28, 2026")],
+      now,
+    ).players.a.currentStreak,
+    1,
+  );
+});
 test("empty stopped games count; scoring replays previous results rather than prior counters", () => {
   const history = [record("old", "Aug 31, 2026", 18)];
   const result = scoreGame({
@@ -128,4 +179,5 @@ test("empty stopped games count; scoring replays previous results rather than pr
     now,
   });
   assert.equal(calculateStats(profiles, empty.history, now).totals.games, 2);
+  assert.equal(empty.players.a.currentStreak, 0);
 });

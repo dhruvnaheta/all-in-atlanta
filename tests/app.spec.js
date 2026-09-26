@@ -534,3 +534,26 @@ test("admins can correct past results and keep their draft through live updates"
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(editor).toBeEmpty();
 });
+
+test("emulator navigation keeps real links and reloads in local mode", async ({ page, context }) => {
+  await page.goto("/?emulator=1");
+  await page.locator("#nav-about").click();
+  await expect(page).toHaveURL(/\/about\/\?emulator=1$/);
+  await expect(page.locator("#nav-about")).toHaveAttribute("aria-current", "page");
+  await page.reload();
+  await expect(page.locator("#page-about")).toBeVisible();
+  await expect(page.locator("#nav-games")).toHaveAttribute("href", /\/games\/\?emulator=1$/);
+  await page.locator("#nav-games").click();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/about\/\?emulator=1$/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/games\/\?emulator=1$/);
+  const href = await page.locator("#nav-account").getAttribute("href");
+  expect(href).toContain("emulator=1");
+  const tab = await context.newPage();
+  await tab.route("https://**/*", route => route.abort());
+  await tab.route("**/js/firebase.js", route => route.fulfill({ contentType: "text/javascript", body: mock }));
+  await tab.goto(href);
+  await expect(tab.locator("#page-account")).toBeVisible();
+  await expect(tab).toHaveURL(/emulator=1/);
+});

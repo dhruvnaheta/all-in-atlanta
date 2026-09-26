@@ -1,3 +1,4 @@
+import { cachePrefix } from "./environment.js";
 export const SYNC_KEYS = [
   "players",
   "gameList",
@@ -8,7 +9,7 @@ export const SYNC_KEYS = [
   "levelOverrides",
 ];
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-export function createStore(storage) {
+export function createStore(storage, prefix = cachePrefix) {
   const listeners = new Set(),
     memory = new Map();
   let transport;
@@ -16,7 +17,7 @@ export function createStore(storage) {
   const get = (key, fallback) => {
     if (memory.has(key)) return structuredClone(memory.get(key));
     try {
-      const raw = storage?.getItem("aia_v2_" + key);
+      const raw = storage?.getItem(prefix + key);
       return raw == null ? fallback : JSON.parse(raw);
     } catch {
       return fallback;
@@ -32,7 +33,7 @@ export function createStore(storage) {
           delete p.phone;
           delete p.recoveryNote;
         }
-      storage?.setItem("aia_v2_" + key, JSON.stringify(persisted));
+      storage?.setItem(prefix + key, JSON.stringify(persisted));
     } catch {
       /* in-memory operation works if browser storage is unavailable */
     }

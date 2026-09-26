@@ -100,6 +100,16 @@ export function calculateStats(profiles, history, now = new Date()) {
   )) {
     const thisMonth = game.date?.slice(0, 7) === month;
     if (thisMonth) totals.monthGames++;
+    // Absence is also a streak event, including for players who never return.
+    // Only dated, finalized history records can advance the streak timeline.
+    if (game.date) {
+      for (const [key, player] of Object.entries(players)) {
+        if (game.results.has(key)) continue;
+        player.currentStreak = 0;
+        player.streakAwardDue = false;
+        player.streakAwardAtGameId = null;
+      }
+    }
     for (const result of game.results.values()) {
       totals.points += result.pts;
       totals.attendances++;

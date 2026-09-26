@@ -71,3 +71,14 @@ test("blocked browser storage still supports an isolated in-memory cache", () =>
   copy.alice.total = 2;
   assert.equal(store.get("players").alice.total, 1);
 });
+
+test("environment caches stay isolated across store instances and reloads", () => {
+  const storage = cache();
+  const production = createStore(storage, "aia_v2_");
+  const emulator = createStore(storage, "aia_emulator_v2_");
+  production.applySnapshot({ activeGameId: "production", players: { prod: {} } });
+  assert.equal(emulator.get("activeGameId", null), null);
+  emulator.applySnapshot({ activeGameId: "local", players: { local: {} } });
+  assert.equal(createStore(storage, "aia_v2_").get("activeGameId"), "production");
+  assert.deepEqual(createStore(storage, "aia_emulator_v2_").get("players"), { local: {} });
+});

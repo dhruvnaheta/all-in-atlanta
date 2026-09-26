@@ -1,3 +1,4 @@
+import { emulator, environmentURL } from "./environment.js";
 import { updateSEO } from "./seo.js";
 import { renderTVTimer, renderGamePage } from "./refresh.js";
 import { refreshToken } from "./auth.js";
@@ -13,6 +14,21 @@ const pages = {
   account: "My Account",
 };
 export function initializeNavigation() {
+  if (emulator) {
+    const updateLinks = () => {
+      document.querySelectorAll("a[href]").forEach((link) => {
+        const url = environmentURL(link.getAttribute("href"));
+        if (url.href !== link.href) link.href = url.href;
+      });
+    };
+    updateLinks();
+    new MutationObserver(updateLinks).observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["href"],
+    });
+  }
   const restore = () =>
     go(location.pathname.split("/").filter(Boolean)[0] || "home", {
       history: false,
@@ -62,12 +78,12 @@ export function go(page, { history = true } = {}) {
   document.getElementById("mobt-more").setAttribute("aria-expanded", "false");
   const path = page === "home" ? "/" : `/${page}/`;
   if (history && location.pathname !== path)
-    window.history.pushState(null, "", path);
+    window.history.pushState(null, "", environmentURL(path));
   updateSEO(page);
   document
     .querySelectorAll('a[data-click="go"], a[data-click="openAccount"]')
     .forEach((link) => {
-      if (link.getAttribute("href") === path)
+      if (new URL(link.href).pathname === path)
         link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });

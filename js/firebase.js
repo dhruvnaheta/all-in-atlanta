@@ -1,3 +1,4 @@
+import { emulator, firebaseAppName } from "./environment.js";
 import {
   configureAccount,
   clearAccount,
@@ -21,13 +22,11 @@ export async function initializeFirebase(onError) {
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"),
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js"),
   ]);
-  const emulator =
-    ["localhost", "127.0.0.1"].includes(location.hostname) &&
-    new URLSearchParams(location.search).get("emulator") === "1";
   const app = appSDK.initializeApp(
     emulator
       ? { ...FIREBASE_CONFIG, projectId: "demo-all-in-atlanta" }
       : FIREBASE_CONFIG,
+    firebaseAppName,
   );
   const db = dbSDK.getFirestore(app);
   const auth = authSDK.getAuth(app);

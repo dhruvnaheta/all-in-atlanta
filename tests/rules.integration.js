@@ -99,6 +99,7 @@ test("closing registration keeps the game running and blocks public check-in on 
   await checkIn(db, { gameId: "g", action: "checkIn", key: "alice" });
   await assert.rejects(
     savePatches(db, {
+      activeGameId: "g",
       patches: [
         {
           path: "games/g",
@@ -296,6 +297,7 @@ test("oversized player deletion and maintenance operations do not partially dele
 test("admin edits cannot override stats; finalization rebuilds from earlier result records", async () => {
   await assert.rejects(
     savePatches(db, {
+      activeGameId: "g",
       patches: [
         {
           path: "players/p_alice",
@@ -398,4 +400,26 @@ test("historical corrections validate placements and honor maintenance lock", as
     amendResults(db, { ...request, positions: { alice: "1", bob: "p" } }),
     /maintenance/,
   );
+});
+
+test("first series saves without settings; active-game preconditions cannot be skipped", async () => {
+  const ref = db.doc(`${root}/settings/current`);
+  const patches = [{ path: "series/first", create: true, after: { id: "first", name: "First" } }];
+  for (const settings of [undefined, {}, { activeGameId: null }]) {
+    await ref.delete();
+    if (settings) await ref.set(settings);
+    await db.doc(`${root}/series/first`).delete();
+    await savePatches(db, { patches, activeGameId: null });
+    assert.equal((await db.doc(`${root}/series/first`).get()).data().name, "First");
+  }
+  for (const activeGameId of [undefined, "", 1, false, {}]) {
+    await assert.rejects(savePatches(db, { patches, activeGameId }), /explicit activeGameId/);
+  }
+  await assert.rejects(savePatches(db, { patches }), /explicit activeGameId/);
+  await ref.set({ activeGameId: "g" });
+  for (const activeGameId of [null, "stale"]) {
+    await assert.rejects(savePatches(db, { patches, activeGameId }), /active game changed/);
+  }
+  await db.doc(`${root}/series/first`).delete();
+  await savePatches(db, { patches, activeGameId: "g" });
 });
