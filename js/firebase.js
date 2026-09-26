@@ -1,4 +1,9 @@
-import { configureAccount, clearAccount, updateAccount } from "./account.js";
+import {
+  configureAccount,
+  clearAccount,
+  updateAccount,
+  autoLinkAccount,
+} from "./account.js";
 import { LEAGUE_PATH } from "./schema.js";
 import { configureCommands } from "./commands.js";
 import { FIREBASE_CONFIG } from "./config.js";
@@ -132,7 +137,7 @@ export async function initializeFirebase(onError) {
         if (!account?.playerKey && user.emailVerified && !attemptedAutoLink) {
           attemptedAutoLink = true;
           try {
-            const { data } = await accountCall({ action: "autoLink" });
+            const data = await autoLinkAccount();
             // A successful match arrives through this same account listener.
             if (data.linked) return;
           } catch (error) {

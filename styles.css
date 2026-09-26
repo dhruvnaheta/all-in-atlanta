@@ -90,6 +90,7 @@ nav {
   flex: 1;
 }
 .nav-link {
+  position: relative;
   font-family: "Barlow Condensed", sans-serif;
   font-weight: 600;
   font-size: 13px;
@@ -97,8 +98,6 @@ nav {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.72);
   padding: 18px 13px;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -3px;
   cursor: pointer;
   background: none;
   border: none;
@@ -110,7 +109,16 @@ nav {
 }
 .nav-link.active {
   color: var(--gold-l);
-  border-bottom: 3px solid var(--gold);
+}
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 9px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gold);
 }
 .nav-admin-btn {
   margin-left: auto;
@@ -371,6 +379,21 @@ nav {
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 500;
+}
+
+/* RANKINGS PAGE */
+#seriesFilterWrap:not(:empty) {
+  margin-bottom: 24px;
+}
+#page-rankings h2 {
+  margin-bottom: 8px;
+}
+#page-rankings .section > p {
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+#page-rankings .section > p:last-of-type {
+  margin-bottom: 20px;
 }
 
 /* RANKINGS TABLE */
@@ -1839,8 +1862,8 @@ nav {
 /* Footer */
 footer {
   background: var(--felt);
-  color: rgba(255, 255, 255, 0.5);
-  padding: 50px 0 14px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 40px 0 24px;
   margin-top: 56px;
   border-top: 3px solid var(--gold);
 }
@@ -1851,9 +1874,12 @@ footer {
 }
 .ftop {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 90px;
+  grid-template-columns: 1fr 1.1fr 1fr;
+  gap: clamp(24px, 4vw, 64px);
   margin-bottom: 32px;
+}
+.ftop > * {
+  min-width: 0;
 }
 .fbrand {
   font-family: "Barlow Condensed", sans-serif;
@@ -1861,6 +1887,16 @@ footer {
   font-size: 24px;
   color: #fff;
   margin-bottom: 7px;
+}
+.ftagline {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.fseason {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--gold-l);
 }
 .fcol h4 {
   font-family: "Barlow Condensed", sans-serif;
@@ -1878,35 +1914,88 @@ footer {
   gap: 8px;
 }
 .fcol ul li {
-  font-size: 18px;
-  cursor: pointer;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.fcol .flinks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+.flinks a {
+  display: block;
+  width: fit-content;
+  padding: 8px 0;
+  font-size: 14px;
+  color: inherit;
+  text-decoration: none;
   transition: color 0.15s;
 }
-.fcol ul li:hover {
+.flinks a:hover,
+.flinks a:focus-visible {
   color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.flinks a:focus-visible {
+  outline: 2px solid var(--gold-l);
+  outline-offset: 4px;
+}
+.fcol .fvenues {
+  gap: 18px;
+  padding-top: 8px;
+}
+.fvenue,
+.fschedule {
+  display: block;
+}
+.fvenue {
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.fschedule {
+  font-size: 14px;
 }
 .fbot {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 20px;
+  padding-top: 18px;
   display: flex;
   justify-content: space-between;
-  font-size: 16px;
+  font-size: 13px;
+  line-height: 1.5;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px 24px;
 }
-.fbot span {
-  color: var(--gold-l);
+@media (max-width: 1000px) {
+  .ftop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 40px;
+  }
+  .fintro {
+    grid-column: 1 / -1;
+  }
 }
-@media (max-width: 700px) {
+@media (max-width: 560px) {
+  footer {
+    padding-top: 32px;
+  }
   .ftop {
     grid-template-columns: 1fr;
     gap: 28px;
   }
+  .fi {
+    padding: 0 20px;
+  }
   .fcol ul li {
     font-size: 15px;
   }
+  .flinks a {
+    min-height: 44px;
+    padding: 10px 0;
+  }
   .fbot {
-    font-size: 13px;
+    flex-direction: column;
   }
 }
 

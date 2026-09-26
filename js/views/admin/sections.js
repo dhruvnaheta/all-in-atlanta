@@ -273,7 +273,7 @@ export function historyRows(history) {
         <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px" class="gh-toggle-lbl">▼ Details</span>
       </button>
       <div style="padding:0 14px 0">${detail}</div>
-      ${h._id && h.results.length ? `<button class="btn btn-ghost" data-click="adminEditResults" data-arg0="${esc(h._id)}">Edit results</button>` : ""}
+      ${h._id && h.results.length ? `<div style="padding:10px 14px"><button class="btn btn-ghost" data-click="adminEditResults" data-arg0="${esc(h._id)}">Edit results</button></div>` : ""}
     </div>`;
       })
       .join("") ||

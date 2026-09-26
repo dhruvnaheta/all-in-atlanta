@@ -34,3 +34,18 @@ export async function accountCommand(request) {
     throw new Error("Account services are unavailable. Please try again.");
   return command(request);
 }
+
+export async function autoLinkAccount() {
+  try {
+    return await accountCommand({ action: "autoLink" });
+  } catch (error) {
+    // Older deployed functions still support manual profile requests. Automatic
+    // matching is optional and must not block that flow during a rollout.
+    if (
+      error.code === "functions/failed-precondition" &&
+      error.message === "Unknown account action."
+    )
+      return { linked: false };
+    throw error;
+  }
+}

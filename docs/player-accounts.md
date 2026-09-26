@@ -24,6 +24,15 @@ current league size this avoids a contact-data migration; a larger league should
 use a transactionally maintained normalized email index. Deploy the updated
 `managePlayerAccount` function before the matching frontend.
 
+If an older deployed function rejects `autoLink` with “Unknown account action.”,
+the frontend continues to the existing manual profile-request flow. Other errors
+(including maintenance and permission failures) remain visible. Automatic email
+matching requires deploying the current backend:
+
+```sh
+firebase deploy --only functions:managePlayerAccount --project all-in-atlanta-pok
+```
+
 ## Data and permissions
 
 - `leagues/atlanta-v2/accounts/{uid}` holds the private account request, status,
