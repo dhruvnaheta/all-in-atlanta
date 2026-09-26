@@ -21,3 +21,17 @@ test('player edits only patch changed fields and do not clear unseen private con
 test('removing check-in preserves historical participant data', () => {
   assert.deepEqual(documentPatches('tonight',[{key:'alice',time:'8:00 PM'}],[],{activeGameId:'g'}),[{path:'games/g/participants/p_alice',before:{checkIn:{key:'alice',time:'8:00 PM'}},after:{checkIn:null}}]);
 });
+
+test('startup removes legacy player/contact caches before the native app loads',async()=>{
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  const removed=[];
+  Object.defineProperty(globalThis,'localStorage',{value:{removeItem:key=>removed.push(key)},configurable:true});
+  try {
+    await import('../js/store.js?legacy-cache-test');
+    for(const key of ['aia_players','aia_adminpw','aia_attendance','aia_tonight'])assert.ok(removed.includes(key));
+    assert.ok(!removed.includes('aia_v2_players'));
+  } finally {
+    if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);
+    else delete globalThis.localStorage;
+  }
+});

@@ -36,5 +36,5 @@ export function createStore(storage) {
     },
   };
 }
-let storage;try{storage=globalThis.localStorage;storage?.removeItem('aia_adminpw');}catch{/* optional */}
+let storage;try{storage=globalThis.localStorage;for(const key of [...SYNC_KEYS,'adminpw','gameState','tonight','attendance'])storage?.removeItem('aia_'+key);}catch{/* optional */}
 export const LS=createStore(storage);
