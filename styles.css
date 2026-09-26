@@ -1874,8 +1874,8 @@ footer {
 }
 .ftop {
   display: grid;
-  grid-template-columns: 1fr 1.1fr 1fr;
-  gap: clamp(24px, 4vw, 64px);
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
   margin-bottom: 32px;
 }
 .ftop > * {
@@ -1919,8 +1919,9 @@ footer {
 }
 .fcol .flinks {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 24px;
+  grid-template-columns: max-content minmax(0, max-content);
+  justify-content: start;
+  gap: 0 20px;
 }
 .flinks a {
   display: block;
