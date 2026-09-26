@@ -1,3 +1,4 @@
+import { mergePlayers } from "./merge-players.js";
 import { LEAGUE_PATH, safeId, playerId } from "../js/schema.js";
 import {
   normalizeGame,
@@ -188,13 +189,6 @@ export async function leagueCommand(db, request, now = new Date()) {
       for (const participant of await collection(`${gamePath}/participants`))
         set(`${gamePath}/participants/${participant.id}`, { checkIn: null });
     } else if (action === "deleteGame" || action === "deleteSeries") {
-      if (
-        action === "deleteSeries" &&
-        ["s_wickedwolf", "s_wickedwolf_monday", "s_5paces"].includes(
-          request.seriesId,
-        )
-      )
-        throw new Error("This permanent series cannot be deleted.");
       const games =
         action === "deleteSeries"
           ? (await collection("games")).filter(
@@ -218,39 +212,21 @@ export async function leagueCommand(db, request, now = new Date()) {
         set("settings/current", { activeGameId: null });
         receipt.activeGameId = null;
       }
-    } else if (["deletePlayer", "clearPlayers", "wipeAll"].includes(action)) {
+    } else if (action === "mergePlayers") {
+      await mergePlayers(tx, ref, collection, set, remove, request);
+    } else if (action === "deletePlayer") {
       const players = await collection("players"),
         contacts = await collection("playerContacts");
-      const selected = (p) =>
-        action !== "deletePlayer" || p.id === playerId(request.key);
+      const selected = (p) => p.id === playerId(request.key);
       for (const p of [...players, ...contacts].filter(selected)) remove(p);
       const games = await collection("games");
       for (const g of games) {
         const participants = await collection(`games/${g.id}/participants`);
-        for (const p of participants) {
-          if (action === "wipeAll") remove(p);
-          else if (selected(p))
-            set(`games/${g.id}/participants/${p.id}`, { checkIn: null });
-        }
-        if (action === "wipeAll") {
-          for (const timer of await collection(`games/${g.id}/runtime`))
-            remove(timer);
-          remove(g);
-        }
-      }
-      if (action === "wipeAll") {
-        for (const name of [
-          "series",
-          "history",
-          "legacyAttendance",
-          "settings",
-        ])
-          for (const doc of await collection(name)) remove(doc);
-        set("settings/current", { activeGameId: null });
-        receipt.activeGameId = null;
+        for (const p of participants.filter(selected))
+          set(`games/${g.id}/participants/${p.id}`, { checkIn: null });
       }
     } else throw new Error("Unknown league operation.");
-    // Oversized destructive jobs fail before any writes; no partial wipe/reset.
+    // Oversized operations fail before any writes to prevent partial changes.
     if (writes.length > 490)
       throw new Error(
         "This operation is too large to complete atomically. Use the maintenance tools.",

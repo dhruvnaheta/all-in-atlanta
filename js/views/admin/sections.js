@@ -264,15 +264,16 @@ export function historyRows(history) {
       </table>
     </div>`;
         return `<div style="border:1px solid var(--border);border-radius:7px;margin-bottom:8px;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg2)" data-click="toggleGameHist" data-arg0="gh_${idx}">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button type="button" aria-expanded="false" aria-controls="gh_${idx}" style="width:100%;border:0;text-align:left;color:inherit;font:inherit;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg2)" data-click="toggleGameHist" data-arg0="gh_${idx}">
+        <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           ${badge}
           <span style="font-weight:600;font-size:13px">${esc(h.date)}</span>
           <span style="font-size:12px;color:var(--muted)">${h.results.length} players${!isStopped ? " · 🏆 " + esc(winner) : ""}</span>
-        </div>
+        </span>
         <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px" class="gh-toggle-lbl">▼ Details</span>
-      </div>
+      </button>
       <div style="padding:0 14px 0">${detail}</div>
+      ${h._id && h.results.length ? `<button class="btn btn-ghost" data-click="adminEditResults" data-arg0="${esc(h._id)}">Edit results</button>` : ""}
     </div>`;
       })
       .join("") ||

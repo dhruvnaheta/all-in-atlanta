@@ -37,7 +37,7 @@ export function renderSeriesSection() {
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="btn btn-green" style="padding:5px 13px;font-size:12px" data-click="adminLaunchGame" data-arg0="${esc(s.id)}">+ Launch ${nextLabel}</button>
-          ${s.id === "s_wickedwolf_monday" || s.id === "s_wickedwolf" || s.id === "s_5paces" ? "" : `<button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--muted)" data-click="adminDeleteSeries" data-arg0="${esc(s.id)}">✕</button>`}
+          <button class="btn btn-ghost" data-click="adminDeleteSeries" data-arg0="${esc(s.id)}" aria-label="Delete series ${esc(s.name)}">Delete series</button>
         </div>
       </div>
       ${
@@ -86,6 +86,7 @@ export function renderSeriesSection() {
   return `${seriesHTML}
     <details style="margin-top:10px">
       <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.5px;user-select:none">+ ADD RECURRING GAME</summary>
+      <div id="seriesError" role="alert" data-preserve></div>
       <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div style="flex:2;min-width:140px">
@@ -123,9 +124,12 @@ export async function adminAddSeries() {
   const time =
     (document.getElementById("sTime") || {}).value?.trim() || "8:00 PM";
   if (!name || !venue) {
-    adminAlert("Please enter a name and venue.", "err");
+    document.getElementById("seriesError").textContent =
+      "Please enter a name and venue.";
+    document.getElementById(!name ? "sName" : "sVenue").focus();
     return;
   }
+  document.getElementById("seriesError").textContent = "";
   const list = getSeriesList();
   list.push({ id: "s_" + Date.now(), name, venue, day, time });
   await setSeriesList(list);
@@ -154,7 +158,7 @@ export async function adminSwitchGame(id) {
 export const adminActivateGame = adminSwitchGame;
 export function adminDeleteGame(id) {
   askConfirm(
-    "Remove this game from the schedule? Completed results are kept.",
+    `Remove "${getGameList().find((g) => g.id === id)?.name || id}" from the schedule? Completed results are kept.`,
     async () => {
       await runCommand("deleteGame", { gameId: id });
       toast("Game removed from schedule.");
@@ -163,7 +167,7 @@ export function adminDeleteGame(id) {
 }
 export function adminDeleteSeries(id) {
   askConfirm(
-    "Delete this recurring series and remove its games from the schedule? Completed results are kept.",
+    `Delete recurring series "${getSeriesList().find((s) => s.id === id)?.name || id}" and remove its games from the schedule? Completed results are kept.`,
     async () => {
       await runCommand("deleteSeries", { seriesId: id });
       toast("Series deleted.");

@@ -996,7 +996,7 @@ nav {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
-  z-index: 500;
+  z-index: 1000;
   align-items: flex-start;
   justify-content: center;
   padding: 20px;
@@ -2191,3 +2191,10 @@ a[data-click] { text-decoration: none; }
 .tv-exit:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .tv-heading { color: #fff; }
 .tv-empty { margin-top: 16px; color: #ffffffb3; }
+
+#toast { z-index: 5000; }
+#seriesError { color: var(--red); margin-top: 8px; }
+#playerDataTable th:first-child, #playerDataTable td:first-child { position: sticky; left: 0; z-index: 1; min-width: 150px; }
+#playerDataTable th:first-child { background: var(--bg2); }
+.confirm-overlay { position: fixed; inset: 0; z-index: 4000; background: #0008; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.confirm-card { background: var(--bg); border-radius: 12px; padding: 24px; width: 100%; max-width: 420px; max-height: 90dvh; overflow: auto; }

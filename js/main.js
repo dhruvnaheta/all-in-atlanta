@@ -53,10 +53,9 @@ import {
 import { cancelConfirm, toggleGameHist } from "./views/admin/dialogs.js";
 import {
   exportPlayerCSV,
-  clearAllPlayers,
-  resetAll,
   openEditPlayer,
   saveEditPlayer,
+  mergePlayerProfile,
   deletePlayerProfile,
 } from "./views/admin/players.js";
 import { logout, resetPassword } from "./views/login.js";
@@ -71,6 +70,9 @@ import {
   adminClearTonight,
 } from "./views/admin/checkin.js";
 import {
+  adminEditResults,
+  adminSaveResults,
+  adminCancelResults,
   adminSetState,
   adminStopGame,
   adminStopWithoutResults,
@@ -127,8 +129,7 @@ export function scheduleRefresh(keys) {
     pendingKeys.clear();
     renderAccount();
     const has = (...keys) => keys.some((key) => changed.has(key));
-    if (has("activeGameId"))
-      document.getElementById("editPlayerOverlay")?.remove();
+    if (has("activeGameId")) closeEditPlayer();
     if (
       has(
         "players",
@@ -176,7 +177,7 @@ subscribeAuth(() => {
   renderAccount();
   if (!isAdmin()) {
     clearPrivateDrafts();
-    document.getElementById("editPlayerOverlay")?.remove();
+    closeEditPlayer();
   }
   const label = currentUser() ? "My Account" : "Log In";
   document.getElementById("nav-account").textContent = label;
@@ -243,8 +244,6 @@ export const actions = {
   adminSwitchGame: (element, event) => adminSwitchGame(element.value),
   renderPlayerTable: (element, event) => renderPlayerTable(),
   exportPlayerCSV: (element, event) => exportPlayerCSV(),
-  clearAllPlayers: (element, event) => clearAllPlayers(),
-  resetAll: (element, event) => resetAll(),
   logout: (element, event) => logout(),
   adminCheckIn: (element, event) => adminCheckIn(element.dataset.arg0),
   adminCreateAndCheckIn: (element, event) =>
@@ -268,9 +267,13 @@ export const actions = {
   adminClearTonight: (element, event) => adminClearTonight(),
   syncFpos: (element, event) => syncFpos(element.dataset.arg0),
   submitResults: (element, event) => submitResults(),
+  adminEditResults: (element) => adminEditResults(element.dataset.arg0),
+  adminSaveResults: () => adminSaveResults(),
+  adminCancelResults: () => adminCancelResults(),
   toggleGameHist: (element, event) =>
     toggleGameHist(element.dataset.arg0, element),
   openEditPlayer: (element, event) => openEditPlayer(element.dataset.arg0),
+  mergePlayerProfile: (element) => mergePlayerProfile(element.dataset.arg0),
   saveEditPlayer: (element, event) => saveEditPlayer(element.dataset.arg0),
   closeEditPlayer: (element, event) => closeEditPlayer(),
   deletePlayerProfile: (element, event) =>
@@ -280,9 +283,8 @@ export const actions = {
 export const adminActions = new Set([
   "jumpLevel",
   "submitResults",
-  "resetAll",
-  "clearAllPlayers",
   "saveEditPlayer",
+  "mergePlayerProfile",
   "deletePlayerProfile",
   "exportPlayerCSV",
   "openEditPlayer",

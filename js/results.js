@@ -9,3 +9,15 @@ export async function commitResults(request) {
     );
   return commit(request);
 }
+
+let amend;
+export function configureResultCorrections(adapter) {
+  amend = adapter;
+}
+export async function correctResults(request) {
+  if (!amend)
+    throw new Error(
+      "Results cannot be saved while disconnected. Please try again.",
+    );
+  return amend(request);
+}

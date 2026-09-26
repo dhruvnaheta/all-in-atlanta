@@ -1,6 +1,6 @@
 import { runCommand } from "../../commands.js";
 import { clearGameDrafts } from "../../drafts.js";
-import { _getTonight, getActiveGameId } from "../../state.js";
+import { _getTonight, getActiveGameId, getHistory } from "../../state.js";
 import { timerReset, timerPause, timerStart } from "../../timer-controller.js";
 import {
   renderAdmin,
@@ -10,9 +10,9 @@ import {
   renderPlayerTable,
   renderTimerUI,
 } from "../../refresh.js";
-import { toast, playerFieldId } from "../../dom.js";
+import { toast, playerFieldId, esc } from "../../dom.js";
 import { askConfirm, adminAlert } from "./dialogs.js";
-import { commitResults } from "../../results.js";
+import { commitResults, correctResults } from "../../results.js";
 import { ptFor } from "../../scoring.js";
 export async function adminSetState(action) {
   await runCommand(action);
@@ -113,4 +113,63 @@ export function submitResults() {
   });
   if (!hasFinish) return adminStopWithoutResults();
   return completeGame(false);
+}
+
+let editingRecord;
+let correcting = false;
+export function adminEditResults(id) {
+  if (correcting) return;
+  const record = getHistory().find((h) => h._id === id);
+  if (!record) return;
+  editingRecord = structuredClone(record);
+  const editor = document.getElementById("historyResultsEditor");
+  editor.innerHTML = `<div class="asec-title">Edit results — ${esc(record.gameName || record.date)}</div>
+    <p>Enter the actual finishing order. Saving replaces this game's points; attendance stays the same. Unplaced players receive 1 participation point.</p>
+    ${record.results
+      .map(
+        (r, i) => `<label class="finish-row">
+      <span style="flex:1">${esc(r.name || r.key)}</span>
+      <select class="fsel" data-result-index="${i}">
+        ${["p", 1, 2, 3, 4, 5, 6, 7, 8].map((pos) => `<option value="${pos}"${String(r.pos) === String(pos) ? " selected" : ""}>${pos === "p" ? "Participation" : "#" + pos} — ${ptFor(pos)} pts</option>`).join("")}
+      </select></label>`,
+      )
+      .join("")}
+    <div role="alert" data-result-error></div>
+    <button class="btn btn-green" data-click="adminSaveResults">Save corrected results</button>
+    <button class="btn btn-ghost" data-click="adminCancelResults">Cancel</button>`;
+  editor.scrollIntoView({ block: "start", behavior: "smooth" });
+  editor.querySelector("select")?.focus({ preventScroll: true });
+}
+export function adminCancelResults() {
+  if (correcting) return;
+  editingRecord = null;
+  document.getElementById("historyResultsEditor")?.replaceChildren();
+}
+export async function adminSaveResults() {
+  if (correcting || !editingRecord) return;
+  const editor = document.getElementById("historyResultsEditor");
+  const before = editingRecord;
+  const positions = Object.fromEntries(
+    before.results.map((r, i) => [
+      r.key,
+      editor.querySelector(`[data-result-index="${i}"]`).value,
+    ]),
+  );
+  correcting = true;
+  editor.querySelectorAll("button, select").forEach((el) => {
+    el.disabled = true;
+  });
+  try {
+    await correctResults({ historyId: before._id, before, positions });
+    editingRecord = null;
+    editor.replaceChildren();
+    toast("Results corrected. Standings will update automatically.");
+  } catch (error) {
+    editor.querySelector("[data-result-error]").textContent = error.message;
+  } finally {
+    correcting = false;
+    editor.querySelectorAll("button, select").forEach((el) => {
+      el.disabled = false;
+    });
+  }
 }

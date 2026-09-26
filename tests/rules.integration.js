@@ -10,7 +10,12 @@ import {
 import { doc, getDoc, getDocs, collection, setDoc } from "firebase/firestore";
 import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { savePatches, checkIn, finalizeGame } from "../backend/operations.js";
+import {
+  savePatches,
+  checkIn,
+  finalizeGame,
+  amendResults,
+} from "../backend/operations.js";
 import { leagueCommand } from "../backend/commands.js";
 import { advanceTimer, remainingTime } from "../js/timer.js";
 import { LEAGUE_PATH as root } from "../js/schema.js";
@@ -228,33 +233,62 @@ test("deleting a player clears contacts and live attendance together while prese
   assert.equal(participant.checkIn, null);
   assert.equal(participant.results.old.pts, 25);
 });
-test("wipe clears the whole league atomically; oversized and maintenance operations do not partially delete", async () => {
+test("removed bulk deletion commands reject without changing league data", async () => {
   await db.doc(`${root}/history/h`).set({ results: [] });
-  await command("wipeAll");
-  for (const name of [
-    "games",
-    "players",
-    "playerContacts",
-    "history",
-    "series",
-  ])
-    assert.equal((await db.collection(`${root}/${name}`).get()).size, 0);
-  assert.equal(
-    (await db.doc(`${root}/settings/current`).get()).data().activeGameId,
-    null,
-  );
+  await db.doc(`${root}/games/g/participants/p_alice`).set({
+    key: "alice",
+    checkIn: { key: "alice" },
+    results: { old: { pts: 25 } },
+  });
+  await db.doc(`${root}/games/g/runtime/timer`).set({ revision: 1 });
+  const paths = [
+    "settings/current",
+    "games/g",
+    "players/p_alice",
+    "playerContacts/p_alice",
+    "history/h",
+    "series/s",
+    "games/g/participants/p_alice",
+    "games/g/runtime/timer",
+  ];
+  const snapshot = async () =>
+    Promise.all(
+      paths.map(async (path) => (await db.doc(`${root}/${path}`).get()).data()),
+    );
+  const before = await snapshot();
+  for (const action of ["wipeAll", "clearPlayers"]) {
+    await assert.rejects(command(action), /Unknown league operation/);
+    assert.deepEqual(await snapshot(), before);
+  }
+});
+
+test("oversized player deletion and maintenance operations do not partially delete", async () => {
   const batch = db.batch();
-  for (let i = 0; i < 491; i++)
-    batch.set(db.doc(`${root}/players/p_${i}`), { key: String(i) });
+  for (let i = 0; i < 489; i++) {
+    batch.set(db.doc(`${root}/games/extra${i}`), { id: `extra${i}` });
+  }
   await batch.commit();
-  await assert.rejects(
-    leagueCommand(db, { action: "clearPlayers", expectedActiveGameId: null }),
-    /too large/,
+  const participants = db.batch();
+  for (let i = 0; i < 489; i++)
+    participants.set(db.doc(`${root}/games/extra${i}/participants/p_alice`), {
+      key: "alice",
+      checkIn: { key: "alice" },
+    });
+  await participants.commit();
+  await assert.rejects(command("deletePlayer", { key: "alice" }), /too large/);
+  assert.equal((await db.doc(`${root}/players/p_alice`).get()).exists, true);
+  assert.equal(
+    (await db.doc(`${root}/playerContacts/p_alice`).get()).exists,
+    true,
   );
-  assert.equal((await db.collection(`${root}/players`).get()).size, 491);
+  assert.deepEqual(
+    (await db.doc(`${root}/games/extra0/participants/p_alice`).get()).data()
+      .checkIn,
+    { key: "alice" },
+  );
   await db.doc(`${root}/operations/control`).update({ writesEnabled: false });
   await assert.rejects(
-    leagueCommand(db, { action: "clearPlayers" }),
+    command("deletePlayer", { key: "alice" }),
     /maintenance/,
   );
 });
@@ -272,14 +306,12 @@ test("admin edits cannot override stats; finalization rebuilds from earlier resu
     }),
     /calculated/,
   );
-  await db
-    .doc(`${root}/history/old`)
-    .set({
-      gameId: "old",
-      date: "Aug 31, 2026",
-      seriesId: "s",
-      results: [{ key: "alice", pts: 18, pos: 2 }],
-    });
+  await db.doc(`${root}/history/old`).set({
+    gameId: "old",
+    date: "Aug 31, 2026",
+    seriesId: "s",
+    results: [{ key: "alice", pts: 18, pos: 2 }],
+  });
   await checkIn(db, { gameId: "g", action: "checkIn", key: "alice" });
   await finalizeGame(
     db,
@@ -302,5 +334,68 @@ test("admin edits cannot override stats; finalization rebuilds from earlier resu
   assert.equal(
     (await db.doc(`${root}/history/game_g`).get()).data().gameId,
     "g",
+  );
+});
+
+test("historical corrections replace points without changing attendance or the active game", async () => {
+  await checkIn(db, { action: "checkIn", gameId: "g", key: "alice" });
+  await finalizeGame(db, { gameId: "g", stopped: true });
+  await db.doc(`${root}/settings/current`).set({ activeGameId: "next" });
+  const ref = db.doc(`${root}/history/game_g`);
+  const before = (await ref.get()).data();
+  const request = { historyId: "game_g", before, positions: { alice: "1" } };
+  await amendResults(db, request);
+  const corrected = (await ref.get()).data();
+  assert.equal(corrected.results[0].pts, 25);
+  assert.equal(corrected.stopped, false);
+  assert.equal(corrected.completedAt, before.completedAt);
+  assert.deepEqual(corrected.attendanceKeys, before.attendanceKeys);
+  const stats = calculateStats({ alice: { key: "alice" } }, [corrected]).players
+    .alice;
+  assert.equal(stats.total, 25);
+  assert.equal(stats.games, 1);
+  assert.equal((await db.collection(`${root}/history`).get()).size, 1);
+  assert.equal(
+    (await db.doc(`${root}/settings/current`).get()).data().activeGameId,
+    "next",
+  );
+  assert.equal(
+    (await db.doc(`${root}/games/g/participants/p_alice`).get()).data().results
+      .game_g.pts,
+    25,
+  );
+  await assert.rejects(amendResults(db, request), /changed elsewhere/);
+  await amendResults(db, {
+    ...request,
+    before: corrected,
+    positions: { alice: "2" },
+  });
+  assert.equal((await ref.get()).data().results[0].pts, 18);
+});
+
+test("historical corrections validate placements and honor maintenance lock", async () => {
+  await checkIn(db, { action: "checkIn", gameId: "g", key: "alice" });
+  await checkIn(db, {
+    action: "checkIn",
+    gameId: "g",
+    key: "bob",
+    profile: { dn: "Bob" },
+  });
+  await finalizeGame(db, { gameId: "g", stopped: true });
+  const ref = db.doc(`${root}/history/game_g`);
+  const before = (await ref.get()).data();
+  const request = { historyId: "game_g", before };
+  for (const positions of [
+    { alice: "1", bob: "1" },
+    { alice: "9", bob: "p" },
+    { alice: "1" },
+    { alice: "1", bob: "p", extra: "2" },
+  ])
+    await assert.rejects(amendResults(db, { ...request, positions }));
+  assert.deepEqual((await ref.get()).data(), before);
+  await db.doc(`${root}/operations/control`).update({ writesEnabled: false });
+  await assert.rejects(
+    amendResults(db, { ...request, positions: { alice: "1", bob: "p" } }),
+    /maintenance/,
   );
 });

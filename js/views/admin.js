@@ -1,3 +1,4 @@
+import { openModal, closeModal } from "../modal.js";
 import { accountRequestMarkup } from "./account.js";
 import { renderMarkup } from "../render.js";
 import { renderPlayerTable } from "../refresh.js";
@@ -28,8 +29,10 @@ export function openAdmin() {
   document.getElementById("adminOverlay").classList.add("open");
   renderAdmin();
   renderPlayerTable();
+  openModal(document.getElementById("adminOverlay"), closeAdmin);
 }
 export function closeAdmin() {
+  closeModal(document.getElementById("adminOverlay"));
   document.getElementById("adminOverlay").classList.remove("open");
 }
 document.getElementById("adminOverlay").addEventListener("click", (e) => {
@@ -57,13 +60,7 @@ export function renderAdmin() {
     body,
     `
     <div class="aalert" id="aalert" data-preserve></div>
-    <div class="aconfirm" id="aconfirm" data-preserve>
-      <div class="aconfirm-msg" id="aconfirm-msg"></div>
-      <div class="aconfirm-btns">
-        <button class="aconfirm-yes" id="aconfirm-yes">Yes, confirm</button>
-        <button class="aconfirm-no" data-click="cancelConfirm">Cancel</button>
-      </div>
-    </div>
+
 
     <div class="asec">
       <div class="asec-title">Recurring Games</div>
@@ -111,6 +108,7 @@ export function renderAdmin() {
     <div class="asec">
       <div class="asec-title">Recent Games</div>
       ${historyRows(history)}
+      <div id="historyResultsEditor" data-preserve></div>
     </div>
 
     ${accountRequestMarkup()}
@@ -138,15 +136,6 @@ export function renderAdmin() {
           <tbody id="playerDataBody" data-preserve></tbody>
         </table>
       </div>
-    </div>
-
-    <div class="asec">
-      <div class="asec-title">Data Management</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-red" data-click="clearAllPlayers">Clear All Players</button>
-        <button class="btn btn-red" data-click="resetAll">Wipe All Data</button>
-      </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:7px">These actions are permanent.</div>
     </div>
 
     <div class="asec"><div class="asec-title">Account</div>

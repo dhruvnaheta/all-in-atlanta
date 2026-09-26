@@ -8,6 +8,7 @@ import {
   splitPlayer,
 } from "../js/schema.js";
 import { applyCheckIn } from "../js/checkin-model.js";
+import { ptFor } from "../js/scoring-rules.js";
 import { scoreGame } from "../js/scoring.js";
 import { DEFAULT_STATE } from "../js/sync.js";
 
@@ -277,5 +278,66 @@ export async function finalizeGame(db, request, now = new Date()) {
       { merge: true },
     );
     return receipt;
+  });
+}
+
+// Correct the original scoring event; attendance and completion time stay intact.
+export async function amendResults(db, request, now = new Date()) {
+  if (!request || typeof request.historyId !== "string" || !request.historyId)
+    throw new Error("Select a recorded game.");
+  const positions = request.positions;
+  if (!positions || typeof positions !== "object" || Array.isArray(positions))
+    throw new Error("Invalid finishing positions.");
+  return db.runTransaction(async (tx) => {
+    await writable(db, tx);
+    const ref = db.doc(`${LEAGUE_PATH}/history/${safeId(request.historyId)}`);
+    const snapshot = await tx.get(ref);
+    const record = snapshot.data();
+    if (!record) throw new Error("Recorded game not found.");
+    if (!equal(record, request.before))
+      throw new Error(
+        "These results changed elsewhere. Close and reopen the editor before saving.",
+      );
+    if (!record.results?.length)
+      throw new Error("This game has no recorded participants.");
+    const keys = record.results.map((r) => r.key);
+    if (
+      new Set(keys).size !== keys.length ||
+      !equal(Object.keys(positions).sort(), [...keys].sort())
+    )
+      throw new Error("Positions must match the recorded participants.");
+    const used = new Set();
+    const results = record.results.map((r) => {
+      const value = positions[r.key];
+      if (value !== "p" && !/^[1-8]$/.test(String(value)))
+        throw new Error(
+          "Finishing positions must be between 1 and 8 or participation.",
+        );
+      const pos = value === "p" ? "p" : Number(value);
+      if (pos !== "p" && used.has(pos))
+        throw new Error("Two players share the same finishing position.");
+      used.add(pos);
+      return { ...r, pos, pts: ptFor(pos) };
+    });
+    const gameRef = db.doc(`${LEAGUE_PATH}/games/${safeId(record.gameId)}`);
+    const game = await tx.get(gameRef);
+    if (
+      !game.exists ||
+      (!game.data().finalized && game.data().status !== "completed")
+    )
+      throw new Error("Only completed games can be corrected.");
+    tx.update(ref, {
+      results,
+      stopped: !results.some((r) => r.pos !== "p"),
+      revisedAt: now.toISOString(),
+      revision: (record.revision || 0) + 1,
+    });
+    for (const result of results)
+      tx.set(
+        gameRef.collection("participants").doc(playerId(result.key)),
+        { key: result.key, results: { [request.historyId]: result } },
+        { merge: true },
+      );
+    return { saved: true, awardedCount: results.length };
   });
 }

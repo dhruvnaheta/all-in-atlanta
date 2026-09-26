@@ -471,3 +471,62 @@ test("timer navigation restores its title and preserves the exit control during 
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/games\/$/);
 });
+
+test("admins can correct past results and keep their draft through live updates", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applyRemote("history", [
+      {
+        _id: "past",
+        gameId: "past-game",
+        date: "Sep 3, 2026",
+        stopped: true,
+        results: [{ key: "alice", name: "Alice", pos: "p", pts: 1 }],
+      },
+    ]);
+    const { configureResultCorrections } = await import("/js/results.js");
+    configureResultCorrections(async (request) => {
+      window.correctionRequest = request;
+      LS.applyRemote("history", [
+        {
+          ...request.before,
+          stopped: false,
+          results: [{ key: "alice", name: "Alice", pos: 1, pts: 25 }],
+        },
+      ]);
+      return { saved: true };
+    });
+  });
+  await login(page);
+  await page.getByRole("button", { name: "Edit results", exact: true }).click();
+  const editor = page.locator("#historyResultsEditor");
+  await editor.locator("select").selectOption("1");
+  await page.evaluate(async () => {
+    const { renderAdmin } = await import("/js/views/admin.js");
+    renderAdmin();
+  });
+  await expect(editor.locator("select")).toHaveValue("1");
+  await editor.getByRole("button", { name: "Save corrected results" }).click();
+  await expect(editor).toBeEmpty();
+  expect(await page.evaluate(() => window.correctionRequest.positions)).toEqual(
+    { alice: "1" },
+  );
+  await expect(page.locator("#adminBody")).toContainText("COMPLETE");
+  await page.getByRole("button", { name: "Edit results", exact: true }).click();
+  await expect(editor.locator("select")).toHaveValue("1");
+  await page.evaluate(async () => {
+    const { configureResultCorrections } = await import("/js/results.js");
+    configureResultCorrections(async () => {
+      throw new Error("These results changed elsewhere.");
+    });
+  });
+  await editor.locator("select").selectOption("2");
+  await editor.getByRole("button", { name: "Save corrected results" }).click();
+  await expect(editor.getByRole("alert")).toContainText("changed elsewhere");
+  await expect(editor.locator("select")).toHaveValue("2");
+  await expect(editor.locator("select")).toBeEnabled();
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(editor).toBeEmpty();
+});

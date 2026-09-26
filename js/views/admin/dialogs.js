@@ -1,40 +1,48 @@
+import { openModal, closeModal } from "../../modal.js";
 export function askConfirm(msg, onYes) {
-  const box = document.getElementById("aconfirm");
-  const msgEl = document.getElementById("aconfirm-msg");
-  const yesBtn = document.getElementById("aconfirm-yes");
-  if (!box || !msgEl || !yesBtn) return;
-  msgEl.textContent = msg;
-  box.classList.add("open");
-  // Remove old listener and attach fresh one
-  const newYes = yesBtn.cloneNode(true);
-  yesBtn.parentNode.replaceChild(newYes, yesBtn);
-  newYes.addEventListener("click", async () => {
-    if (newYes.disabled) return;
-    newYes.disabled = true;
-    newYes.textContent = "Saving…";
+  cancelConfirm();
+  const box = document.createElement("div");
+  box.id = "aconfirm";
+  box.className = "confirm-overlay";
+  box.setAttribute("aria-labelledby", "aconfirm-msg");
+  box.innerHTML = `<div class="confirm-card"><p id="aconfirm-msg"></p>
+    <p id="confirmError" role="alert"></p><div class="aconfirm-btns">
+    <button class="aconfirm-no" data-click="cancelConfirm">Cancel</button>
+    <button class="aconfirm-yes" id="aconfirm-yes">Yes, confirm</button></div></div>`;
+  box.querySelector("#aconfirm-msg").textContent = msg;
+  document.body.append(box);
+  openModal(box, cancelConfirm);
+  const yes = box.querySelector("#aconfirm-yes");
+  yes.addEventListener("click", async () => {
+    if (yes.disabled) return;
+    yes.disabled = true;
+    yes.textContent = "Saving…";
     try {
       await onYes();
-      box.classList.remove("open");
+      if (box.isConnected) cancelConfirm();
     } catch (error) {
-      adminAlert(error.message, "err");
+      box.querySelector("#confirmError").textContent = error.message;
     } finally {
-      newYes.disabled = false;
-      newYes.textContent = "Yes, confirm";
+      yes.disabled = false;
+      yes.textContent = "Yes, confirm";
     }
   });
-  box.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 export function toggleGameHist(id, hdr) {
   const el = document.getElementById(id);
   if (!el) return;
   const open = el.style.display === "block";
   el.style.display = open ? "none" : "block";
+  hdr.setAttribute("aria-expanded", String(!open));
   const lbl = hdr.querySelector(".gh-toggle-lbl");
   if (lbl) lbl.textContent = open ? "▼ Details" : "▲ Hide";
 }
 export function cancelConfirm() {
   const box = document.getElementById("aconfirm");
-  if (box) box.classList.remove("open");
+  if (box) {
+    closeModal(box);
+    box.remove();
+  }
 }
 
 export function adminAlert(msg, type) {
@@ -43,6 +51,8 @@ export function adminAlert(msg, type) {
   el.textContent = msg;
   el.className = "aalert " + type;
   el.style.display = "block";
+  el.setAttribute("role", "alert");
+  el.scrollIntoView({ block: "nearest" });
   setTimeout(() => {
     if (el) el.style.display = "none";
   }, 4000);

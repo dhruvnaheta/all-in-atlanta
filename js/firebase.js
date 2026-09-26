@@ -7,7 +7,7 @@ import { connectNativeSync } from "./native-sync.js";
 import { documentPatches } from "./schema.js";
 import { configureAuth, setSession, isAdmin, subscribeAuth } from "./auth.js";
 import { configureCheckIn } from "./checkin.js";
-import { configureResults } from "./results.js";
+import { configureResults, configureResultCorrections } from "./results.js";
 
 export async function initializeFirebase(onError) {
   const [appSDK, dbSDK, authSDK, functionsSDK] = await Promise.all([
@@ -219,6 +219,13 @@ export async function initializeFirebase(onError) {
       ...request,
       gameId: LS.get("activeGameId", null),
     });
+    return data;
+  });
+  const correct = functionsSDK.httpsCallable(functions, "correctResults");
+  configureResultCorrections(async (request) => {
+    if (!isAdmin()) throw new Error("Administrator sign-in required.");
+    await queue;
+    const { data } = await correct(request);
     return data;
   });
   const finalize = functionsSDK.httpsCallable(functions, "finalizeResults");

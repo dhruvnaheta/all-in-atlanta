@@ -1,3 +1,4 @@
+import { closeModal } from "./modal.js";
 export function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -19,5 +20,9 @@ export function playerFieldId(key) {
     .join("-");
 }
 export function closeEditPlayer() {
-  document.getElementById("editPlayerOverlay")?.remove();
+  const overlay = document.getElementById("editPlayerOverlay");
+  if (overlay) {
+    closeModal(overlay);
+    overlay.remove();
+  }
 }

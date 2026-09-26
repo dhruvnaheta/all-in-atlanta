@@ -3,7 +3,12 @@ import { leagueCommand } from "./commands.js";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { checkIn, finalizeGame, savePatches } from "./operations.js";
+import {
+  checkIn,
+  finalizeGame,
+  savePatches,
+  amendResults,
+} from "./operations.js";
 initializeApp();
 const db = getFirestore();
 function callable(operation, admin = false) {
@@ -32,6 +37,7 @@ function callable(operation, admin = false) {
   );
 }
 export const playerCheckIn = callable(checkIn);
+export const correctResults = callable(amendResults, true);
 export const finalizeResults = callable(finalizeGame, true);
 export const saveLeagueChanges = callable(savePatches, true);
 
