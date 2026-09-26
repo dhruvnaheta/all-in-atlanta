@@ -55,6 +55,10 @@ export async function initializeFirebase() {
     write: async (key, value) => LS.applyRemote(key, value),
   });
   configureAuth({
+    signInWithGoogle: async () => {
+      setSession({ uid: "google-player", email: "google@example.test", emailVerified: true }, false);
+      updateAccount({ loaded: true });
+    },
     signIn: async (email, password) => {
       if (password !== "test-only") throw new Error("Invalid credentials.");
       const admin = email === "admin@example.test";

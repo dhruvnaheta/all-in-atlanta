@@ -24,6 +24,10 @@ export async function signIn(email, password) {
 export async function signOut() {
   return provider?.signOut();
 }
+export async function signInWithGoogle() {
+  if (!provider) throw new Error("Sign-in is unavailable. Please try again.");
+  return provider.signInWithGoogle();
+}
 export async function sendPasswordReset(email = session.user?.email) {
   if (!email?.trim()) throw new Error("Enter your sign-in email first.");
   if (!provider) throw new Error("Sign-in is unavailable. Please try again.");

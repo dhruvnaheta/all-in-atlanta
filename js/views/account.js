@@ -4,6 +4,7 @@ import {
   currentUser,
   isAdmin,
   signIn,
+  signInWithGoogle,
   signUp,
   signOut,
   sendPasswordReset,
@@ -45,6 +46,7 @@ function signedOut() {
     <form id="accountAuthForm" class="card account-form" data-submit="accountAuthenticate">
       <h2>${signup ? "Create your account" : reset ? "Reset your password" : "Welcome back"}</h2>
       <p class="account-muted">${signup ? "Already played with us? We’ll connect your existing results after you sign up." : reset ? "Enter your sign-in email and we’ll send a reset link." : "Sign in to see your personal stats."}</p>
+      ${reset ? "" : '<button class="btn btn-ghost account-google" type="button" data-click="accountGoogleSignIn">Continue with Google</button><div class="account-auth-divider">or use your email</div>'}
       ${field("accountEmail", "Email", "", "email", 'autocomplete="email" required maxlength="254"')}
       ${reset ? "" : field("accountPassword", "Password", "", "password", `autocomplete="${signup ? "new-password" : "current-password"}" required ${signup ? 'minlength="8"' : ""}`)}
       <p id="accountAuthMessage" class="account-message" role="status" data-preserve></p>
@@ -202,6 +204,18 @@ export async function authenticateAccount(form) {
 }
 export function friendlyAuthError(error) {
   const errors = {
+    "auth/popup-closed-by-user":
+      "Google sign-in was canceled. Try again when you’re ready.",
+    "auth/cancelled-popup-request":
+      "Google sign-in was canceled. Please try again.",
+    "auth/popup-blocked":
+      "Allow pop-ups for this site, then try Google sign-in again.",
+    "auth/account-exists-with-different-credential":
+      "This email already uses another sign-in method. Sign in with that method to access your existing account.",
+    "auth/operation-not-allowed":
+      "Google sign-in is currently unavailable. Please use email and password.",
+    "auth/unauthorized-domain":
+      "Google sign-in isn’t available on this domain. Please use email and password.",
     "auth/invalid-credential":
       "That email and password don’t match. Try again or reset your password.",
     "auth/wrong-password": "That email and password don’t match.",
@@ -216,6 +230,27 @@ export function friendlyAuthError(error) {
       "Couldn’t connect. Check your connection and try again.",
   };
   return errors[error.code] || error.message;
+}
+export async function authenticateWithGoogle(button) {
+  const form = button.closest("form");
+  const controls = [...form.querySelectorAll("button, input")];
+  const message = form.querySelector("#accountAuthMessage");
+  controls.forEach((control) => {
+    control.disabled = true;
+  });
+  message.textContent = "Opening Google sign-in…";
+  try {
+    await signInWithGoogle();
+    renderAccount();
+    if (isAdmin()) openAdmin();
+  } catch (error) {
+    if (message.isConnected) message.textContent = friendlyAuthError(error);
+    else toast(friendlyAuthError(error));
+  } finally {
+    controls.forEach((control) => {
+      control.disabled = false;
+    });
+  }
 }
 export async function requestAccountLink() {
   const playerKey = document.getElementById("accountPlayerKey").value;

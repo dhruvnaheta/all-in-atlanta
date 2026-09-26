@@ -51,6 +51,13 @@ export async function initializeFirebase(onError) {
   const sync = connectNativeSync(LS, dbSDK, db, onError);
   const stopAuthSync = subscribeAuth(({ admin }) => sync.setAdmin(admin));
   configureAuth({
+    async signInWithGoogle() {
+      const google = new authSDK.GoogleAuthProvider();
+      google.setCustomParameters({ prompt: "select_account" });
+      const { user } = await authSDK.signInWithPopup(auth, google);
+      const token = await user.getIdTokenResult(true);
+      setSession(user, token.claims.admin === true);
+    },
     async signIn(email, password) {
       const { user } = await authSDK.signInWithEmailAndPassword(
         auth,

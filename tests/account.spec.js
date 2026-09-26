@@ -4,6 +4,57 @@ const mock = await readFile(
   new URL("./mock-firebase.js", import.meta.url),
   "utf8",
 );
+for (const mode of ["signin", "signup"]) {
+  test(`Google ${mode} works with empty email fields and reaches profile approval`, async ({
+    page,
+  }) => {
+    await page.locator("#nav-account").click();
+    if (mode === "signup") await page.locator('[data-arg0="signup"]').click();
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await expect(page.locator("#accountContent")).toContainText(
+      "Connect your player profile",
+    );
+    await expect(page.locator("#accountHeadingActions")).not.toContainText(
+      "Admin view",
+    );
+    await page.locator("#accountPlayerKey").selectOption("alice");
+    await page.locator('#accountLinkForm button[type="submit"]').click();
+    await expect(page.locator("#accountContent")).toContainText(
+      "Profile request sent",
+    );
+  });
+}
+test("Google popup errors preserve credentials and allow retry", async ({
+  page,
+}) => {
+  await page.locator("#nav-account").click();
+  await page.locator("#accountEmail").fill("alice@example.test");
+  for (const [code, message] of [
+    ["auth/popup-blocked", "Allow pop-ups"],
+    ["auth/popup-closed-by-user", "was canceled"],
+    ["auth/account-exists-with-different-credential", "another sign-in method"],
+  ]) {
+    await page.evaluate(async (code) => {
+      const { configureAuth } = await import("/js/auth.js");
+      configureAuth({
+        signInWithGoogle: async () => {
+          throw Object.assign(new Error(), { code });
+        },
+      });
+    }, code);
+    const google = page.getByRole("button", { name: "Continue with Google" });
+    await google.click();
+    await expect(page.locator("#accountAuthMessage")).toContainText(message);
+    await expect(google).toBeEnabled();
+    await expect(page.locator("#accountEmail")).toBeEnabled();
+    await expect(page.locator("#accountEmail")).toHaveValue(
+      "alice@example.test",
+    );
+    await expect(
+      page.locator('#accountAuthForm button[type="submit"]'),
+    ).toBeEnabled();
+  }
+});
 test.beforeEach(async ({ page }) => {
   await page.route("https://**/*", (route) => route.abort());
   await page.route("**/js/firebase.js", (route) =>

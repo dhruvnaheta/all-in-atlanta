@@ -2103,6 +2103,9 @@ button[data-click][aria-busy="true"]::after {
 .account-message { color: var(--green); font-size: 14px; line-height: 1.5; margin: 12px 0; overflow-wrap: anywhere; }
 .account-message:empty { display: none; }
 .account-form > .btn { width: 100%; }
+.account-google { margin-top: 16px; }
+.account-auth-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 13px; }
+.account-auth-divider::before, .account-auth-divider::after { content: ""; flex: 1; height: 1px; background: #ddd; }
 .account-text-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
 .account-text-actions button { border: 0; background: transparent; color: var(--green); font: 500 14px "Barlow", sans-serif; text-decoration: underline; cursor: pointer; padding: 4px 0; }
 .personal-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
