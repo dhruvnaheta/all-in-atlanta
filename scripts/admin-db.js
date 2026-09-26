@@ -29,7 +29,8 @@ export async function adminDatabase(projectId,cliAuth = false) {
     const client = new OAuth2Client();
     client.getRequestHeaders = async () => {
       const token = await credential.getAccessToken();
-      return new Headers({authorization:`Bearer ${token.access_token}`});
+      // Firestore 7 / google-gax 4 expects a plain header map (Auth v9 contract).
+      return {Authorization:`Bearer ${token.access_token}`};
     };
     return {app,db:new Firestore({projectId,authClient:client})};
   }

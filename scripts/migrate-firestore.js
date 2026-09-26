@@ -6,15 +6,22 @@ import {convertBackup,readVerifiedBackup} from './convert-backup.js';
 import {LEAGUE_PATH,equal} from '../js/schema.js';
 const [command,projectId,directory,...flags] = process.argv.slice(2);
 if (!['backup','import','verify','publish','pause'].includes(command) || !projectId || !directory) throw new Error('Usage: node scripts/migrate-firestore.js backup|import|verify|publish|pause PROJECT DIRECTORY [--firebase-cli-auth]');
-const {db} = await adminDatabase(projectId,flags.includes('--firebase-cli-auth'));
+const {app,db} = await adminDatabase(projectId,flags.includes('--firebase-cli-auth'));
 const controlRef = db.doc(`${LEAGUE_PATH}/operations/control`);
 if (command === 'backup') {
-  const snapshot = await db.collection('aia').get();
-  const documents = snapshot.docs.map(doc => {
-    if (typeof doc.data().v !== 'string' || Object.keys(doc.data()).length !== 1) throw new Error('Unexpected legacy document shape.');
-    return {name:`projects/${projectId}/databases/(default)/documents/${doc.ref.path}`,fields:{v:{stringValue:doc.data().v}},createTime:doc.createTime.toDate().toISOString(),updateTime:doc.updateTime.toDate().toISOString()};
+  // Export typed REST fields verbatim, including credentials/metadata documents
+  // whose shape differs from the application JSON blobs. Never log their values.
+  const host = process.env.FIRESTORE_EMULATOR_HOST;
+  const origin = host ? `http://${host}` : 'https://firestore.googleapis.com';
+  const token = host ? 'owner' : (await app.options.credential.getAccessToken()).access_token;
+  const response = await fetch(`${origin}/v1/projects/${projectId}/databases/(default)/documents:runQuery`, {
+    method:'POST', headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({structuredQuery:{from:[{collectionId:'aia'}]}}),
   });
-  const backup = {format:'aia-firestore-rest-backup-v1',project:projectId,database:'(default)',readTime:snapshot.readTime.toDate().toISOString(),collections:['aia'],excludedCollections:['aia_backups'],documents};
+  if (!response.ok) throw new Error(`Backup query failed with HTTP ${response.status}.`);
+  const rows = await response.json();
+  const documents = rows.filter(row => row.document).map(row => row.document);
+  const backup = {format:'aia-firestore-rest-backup-v1',project:projectId,database:'(default)',readTime:rows.at(-1)?.readTime,collections:['aia'],excludedCollections:['aia_backups'],documents};
   await mkdir(directory,{recursive:true,mode:0o700});
   const content = JSON.stringify(backup,null,2);
   await writeFile(resolve(directory,'firestore.json'),content,{mode:0o600,flag:'wx'});
