@@ -2183,3 +2183,9 @@ a[data-click] { text-decoration: none; }
 }
 
 .mobile-more a { display: flex; align-items: center; text-decoration: none; }
+
+.tv-toolbar { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+.tv-exit { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 16px; border: 1px solid #ffffff60; border-radius: 6px; color: #fff; }
+.tv-exit:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.tv-heading { color: #fff; }
+.tv-empty { margin-top: 16px; color: #ffffffb3; }

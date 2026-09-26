@@ -29,6 +29,13 @@ export function toggleMobileMenu() {
 document.addEventListener("keydown", (event) => {
   if (
     event.key === "Escape" &&
+    document.getElementById("page-tv")?.style.display === "flex"
+  ) {
+    go("games");
+    return;
+  }
+  if (
+    event.key === "Escape" &&
     document.getElementById("mobileMore")?.hidden === false
   ) {
     toggleMobileMenu();

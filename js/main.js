@@ -142,7 +142,8 @@ export function scheduleRefresh(keys) {
     if (has("players", "history", "seriesList")) drawRankings();
     if (has("players", "history", "attendance")) drawStats();
     if (has("seriesList")) drawSchedule();
-    if (has("timerState", "levelOverrides", "activeGameId")) syncTimer();
+    if (has("timerState", "levelOverrides", "activeGameId", "gameList"))
+      syncTimer();
     if (
       isAdmin() &&
       document.getElementById("adminOverlay").classList.contains("open") &&

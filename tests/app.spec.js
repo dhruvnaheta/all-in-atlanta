@@ -369,3 +369,29 @@ test("monthly rankings display finish tiebreakers and shared ranks", async ({
     "2",
   ]);
 });
+
+test("public timer hides completed sessions, supports Escape and fits phones", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto("/tv/");
+  await expect(page.locator("#page-tv")).toBeVisible();
+  await expect(page.locator("#tvTimerContent")).toContainText("LEVEL");
+  const exit = await page.locator(".tv-exit").boundingBox();
+  const heading = await page.locator(".tv-heading").boundingBox();
+  expect(exit.y + exit.height).toBeLessThanOrEqual(heading.y);
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/games\/$/);
+  await page.goto("/tv/");
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    const games = LS.get("gameList");
+    LS.applySnapshot({
+      gameList: games.map((g) => ({ ...g, status: "completed" })),
+    });
+  });
+  await expect(page.locator("#tvTimerContent")).toContainText("No live game");
+  await expect(page.locator("#tvTimerContent")).not.toContainText("LEVEL");
+  await page.locator(".tv-exit").click();
+  await expect(page).toHaveURL(/\/games\/$/);
+});
