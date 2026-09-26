@@ -1016,59 +1016,20 @@ nav {
   background: #fee2e2;
 }
 
-/* ADMIN OVERLAY */
-.overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  z-index: 1000;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 20px;
-  overflow-y: auto;
-}
-.overlay.open {
+/* ADMIN PAGE */
+.admin-access-fields {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
-.amodal {
-  background: var(--bg);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 760px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
-  margin: auto;
-}
-.amodal-hdr {
-  background: var(--felt);
-  padding: 17px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-radius: 12px 12px 0 0;
-  border-bottom: 3px solid var(--gold);
-}
-.amodal-title {
-  font-family: "Barlow Condensed", sans-serif;
-  font-weight: 800;
-  font-size: 19px;
-  color: #fff;
-}
-.amodal-close {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 22px;
-  cursor: pointer;
-  padding: 2px 8px;
-  line-height: 1;
-  border-radius: 4px;
-}
-.amodal-close:hover {
-  color: #fff;
-}
-.amodal-body {
-  padding: 20px 24px;
+.admin-access-fields input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
 }
 .asec {
   margin-bottom: 22px;

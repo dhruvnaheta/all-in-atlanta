@@ -497,6 +497,8 @@ test("admins can correct past results and keep their draft through live updates"
         {
           ...request.before,
           stopped: false,
+          gameName: request.gameName,
+          date: request.date,
           results: [{ key: "alice", name: "Alice", pos: 1, pts: 25 }],
         },
       ]);
@@ -507,16 +509,31 @@ test("admins can correct past results and keep their draft through live updates"
   await page.getByRole("button", { name: "Edit results", exact: true }).click();
   const editor = page.locator("#historyResultsEditor");
   await editor.locator("select").selectOption("1");
+  await editor
+    .getByLabel("Game name", { exact: true })
+    .fill("Corrected Thursday");
+  await editor.getByLabel("Game date", { exact: true }).fill("2026-08-27");
   await page.evaluate(async () => {
     const { renderAdmin } = await import("/js/views/admin.js");
     renderAdmin();
   });
   await expect(editor.locator("select")).toHaveValue("1");
+  await expect(editor.getByLabel("Game name", { exact: true })).toHaveValue(
+    "Corrected Thursday",
+  );
+  await expect(editor.getByLabel("Game date", { exact: true })).toHaveValue(
+    "2026-08-27",
+  );
   await editor.getByRole("button", { name: "Save corrected results" }).click();
   await expect(editor).toBeEmpty();
   expect(await page.evaluate(() => window.correctionRequest.positions)).toEqual(
     { alice: "1" },
   );
+  expect(await page.evaluate(() => window.correctionRequest)).toMatchObject({
+    gameName: "Corrected Thursday",
+    date: "2026-08-27",
+  });
+  await expect(page.locator("#adminBody")).toContainText("Corrected Thursday");
   await expect(page.locator("#adminBody")).toContainText("COMPLETE");
   await page.getByRole("button", { name: "Edit results", exact: true }).click();
   await expect(editor.locator("select")).toHaveValue("1");

@@ -17,7 +17,7 @@ service cloud.firestore {
     }
     // Private identity mapping; profile linking and updates require the callable.
     match /leagues/atlanta-v2/accounts/{uid} {
-      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow read: if isAdmin();
       allow write: if false;
     }
     // Legacy documents, credentials, and backup collections are retired/private.

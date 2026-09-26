@@ -19,7 +19,9 @@ createServer(async (request, response) => {
     ).replace(/^\/$/, "/index.html");
     const page = path.split("/").filter(Boolean)[0] || "home";
     if (
-      /^\/(about|rankings|games|rules|restrictions|tv|account)\/?$/.test(path)
+      /^\/(about|rankings|games|rules|restrictions|tv|account|admin)\/?$/.test(
+        path,
+      )
     )
       path = "/index.html";
     const file = resolve(root, "." + (path === "/" ? "/index.html" : path));

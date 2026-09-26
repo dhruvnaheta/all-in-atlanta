@@ -404,22 +404,77 @@ test("historical corrections validate placements and honor maintenance lock", as
 
 test("first series saves without settings; active-game preconditions cannot be skipped", async () => {
   const ref = db.doc(`${root}/settings/current`);
-  const patches = [{ path: "series/first", create: true, after: { id: "first", name: "First" } }];
+  const patches = [
+    {
+      path: "series/first",
+      create: true,
+      after: { id: "first", name: "First" },
+    },
+  ];
   for (const settings of [undefined, {}, { activeGameId: null }]) {
     await ref.delete();
     if (settings) await ref.set(settings);
     await db.doc(`${root}/series/first`).delete();
     await savePatches(db, { patches, activeGameId: null });
-    assert.equal((await db.doc(`${root}/series/first`).get()).data().name, "First");
+    assert.equal(
+      (await db.doc(`${root}/series/first`).get()).data().name,
+      "First",
+    );
   }
   for (const activeGameId of [undefined, "", 1, false, {}]) {
-    await assert.rejects(savePatches(db, { patches, activeGameId }), /explicit activeGameId/);
+    await assert.rejects(
+      savePatches(db, { patches, activeGameId }),
+      /explicit activeGameId/,
+    );
   }
   await assert.rejects(savePatches(db, { patches }), /explicit activeGameId/);
   await ref.set({ activeGameId: "g" });
   for (const activeGameId of [null, "stale"]) {
-    await assert.rejects(savePatches(db, { patches, activeGameId }), /active game changed/);
+    await assert.rejects(
+      savePatches(db, { patches, activeGameId }),
+      /active game changed/,
+    );
   }
   await db.doc(`${root}/series/first`).delete();
   await savePatches(db, { patches, activeGameId: "g" });
+});
+
+test("historical metadata corrections update game and ledger together and recalculate monthly points", async () => {
+  await checkIn(db, { action: "checkIn", gameId: "g", key: "alice" });
+  await finalizeGame(db, { gameId: "g", positions: { alice: "1" } });
+  const ref = db.doc(`${root}/history/game_g`);
+  const before = (await ref.get()).data();
+  const request = { historyId: "game_g", before, positions: { alice: "1" } };
+  for (const metadata of [
+    { gameName: " " },
+    { gameName: "a".repeat(161) },
+    { date: "2026-02-30" },
+    { date: "" },
+  ]) {
+    await assert.rejects(amendResults(db, { ...request, ...metadata }));
+  }
+  assert.deepEqual((await ref.get()).data(), before);
+  await amendResults(db, {
+    ...request,
+    gameName: " Corrected game ",
+    date: "2026-08-27",
+  });
+  const corrected = (await ref.get()).data();
+  const game = (await db.doc(`${root}/games/g`).get()).data();
+  assert.equal(corrected.gameName, "Corrected game");
+  assert.equal(game.name, corrected.gameName);
+  assert.equal(game.date, corrected.date);
+  assert.equal(corrected.date, "2026-08-27");
+  assert.deepEqual(corrected.results, before.results);
+  assert.deepEqual(corrected.attendanceKeys, before.attendanceKeys);
+  assert.equal(corrected.completedAt, before.completedAt);
+  const stats = calculateStats(
+    { alice: { key: "alice" } },
+    [corrected],
+    new Date("2026-09-26T12:00:00Z"),
+  ).players.alice;
+  assert.equal(stats.month, 0);
+  assert.equal(stats.total, 25);
+  assert.equal(stats.games, 1);
+  await assert.rejects(amendResults(db, request), /changed elsewhere/);
 });

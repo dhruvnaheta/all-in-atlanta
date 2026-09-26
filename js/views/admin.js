@@ -1,5 +1,3 @@
-import { openModal, closeModal } from "../modal.js";
-import { accountRequestMarkup } from "./account.js";
 import { renderMarkup } from "../render.js";
 import { renderPlayerTable } from "../refresh.js";
 import { isAdmin } from "../auth.js";
@@ -26,24 +24,17 @@ import {
 import { renderSeriesSection } from "./series.js";
 import { esc } from "../dom.js";
 export function openAdmin() {
-  document.getElementById("adminOverlay").classList.add("open");
-  renderAdmin();
-  renderPlayerTable();
-  openModal(document.getElementById("adminOverlay"), closeAdmin);
+  go(isAdmin() ? "admin" : "account");
 }
-export function closeAdmin() {
-  closeModal(document.getElementById("adminOverlay"));
-  document.getElementById("adminOverlay").classList.remove("open");
-}
-document.getElementById("adminOverlay").addEventListener("click", (e) => {
-  if (e.target === document.getElementById("adminOverlay")) closeAdmin();
-});
 export function renderAdmin() {
   const body = document.getElementById("adminBody");
   if (!isAdmin()) {
-    body.replaceChildren();
-    closeAdmin();
-    go("account");
+    renderMarkup(
+      body,
+      `<p>Administrator sign-in required.</p>
+      <a href="/account/" class="btn btn-gold" data-click="openPlayerAccount">Sign in</a>`,
+      "admin:unauthorized",
+    );
     return;
   }
   const state = _getState(),
@@ -60,7 +51,6 @@ export function renderAdmin() {
     body,
     `
     <div class="aalert" id="aalert" data-preserve></div>
-    ${accountRequestMarkup()}
 
 
     <div class="asec">
@@ -136,6 +126,20 @@ export function renderAdmin() {
           <tbody id="playerDataBody" data-preserve></tbody>
         </table>
       </div>
+    </div>
+
+    <div class="asec">
+      <div class="asec-title">Administrators</div>
+      <p>Grant full access to manage games, players and other administrators.</p>
+      <form id="adminAccessForm" data-submit="adminAddAdministrator" data-preserve>
+        <label for="adminAccessEmail">Administrator email</label>
+        <div class="admin-access-fields">
+          <input id="adminAccessEmail" type="email" autocomplete="email" maxlength="254" required />
+          <button type="submit" class="btn btn-green-sm">Add administrator</button>
+        </div>
+        <p role="status" aria-live="polite"></p>
+      </form>
+      <p>No invitation email is sent. New administrators can use Google sign-in or Forgot password on the Admin sign-in page.</p>
     </div>
 
     <div class="asec"><div class="asec-title">Account</div>

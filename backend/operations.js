@@ -1,3 +1,4 @@
+import { leagueDateKey } from "../js/league-date.js";
 import { validateContact } from "../js/contact.js";
 import { DERIVED_PLAYER_FIELDS, profileOnly } from "../js/stats.js";
 import { requireRunning } from "../js/game-model.js";
@@ -300,13 +301,28 @@ export async function finalizeGame(db, request, now = new Date()) {
   });
 }
 
-// Correct the original scoring event; attendance and completion time stay intact.
+// Correct the original scoring event; participant identities and completion time stay intact.
 export async function amendResults(db, request, now = new Date()) {
   if (!request || typeof request.historyId !== "string" || !request.historyId)
     throw new Error("Select a recorded game.");
   const positions = request.positions;
   if (!positions || typeof positions !== "object" || Array.isArray(positions))
     throw new Error("Invalid finishing positions.");
+  const metadata = {};
+  if (request.gameName !== undefined) {
+    if (
+      typeof request.gameName !== "string" ||
+      !request.gameName.trim() ||
+      request.gameName.trim().length > 160
+    )
+      throw new Error("Enter a game name of 1–160 characters.");
+    metadata.gameName = request.gameName.trim();
+  }
+  if (request.date !== undefined) {
+    if (!leagueDateKey(request.date))
+      throw new Error("Enter a valid game date.");
+    metadata.date = leagueDateKey(request.date);
+  }
   return db.runTransaction(async (tx) => {
     await writable(db, tx);
     const ref = db.doc(`${LEAGUE_PATH}/history/${safeId(request.historyId)}`);
@@ -345,7 +361,12 @@ export async function amendResults(db, request, now = new Date()) {
       (!game.data().finalized && game.data().status !== "completed")
     )
       throw new Error("Only completed games can be corrected.");
+    const gameMetadata = {};
+    if (metadata.gameName !== undefined) gameMetadata.name = metadata.gameName;
+    if (metadata.date !== undefined) gameMetadata.date = metadata.date;
+    if (Object.keys(gameMetadata).length) tx.update(gameRef, gameMetadata);
     tx.update(ref, {
+      ...metadata,
       results,
       stopped: !results.some((r) => r.pos !== "p"),
       revisedAt: now.toISOString(),

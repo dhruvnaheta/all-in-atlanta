@@ -37,10 +37,16 @@ export const seoPages = {
     label: "Eligibility and promotions",
   },
   account: {
-    title: "My Account | All In Atlanta",
+    title: "Admin | All In Atlanta",
     description:
-      "Sign in to your All In Atlanta poker league account to view personal stats and manage your player profile.",
-    label: "My account",
+      "Administrator sign-in for managing All In Atlanta poker league games and player results.",
+    label: "Admin",
+    noindex: true,
+  },
+  admin: {
+    title: "Admin | All In Atlanta",
+    description: "Manage All In Atlanta games and player results.",
+    label: "Admin",
     noindex: true,
   },
   tv: {

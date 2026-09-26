@@ -1,12 +1,8 @@
 import { emulator, firebaseAppName } from "./environment.js";
-import {
-  configureAccount,
-  clearAccount,
-  updateAccount,
-  autoLinkAccount,
-} from "./account.js";
+import { configureAccount, clearAccount, updateAccount } from "./account.js";
 import { LEAGUE_PATH } from "./schema.js";
 import { configureCommands } from "./commands.js";
+import { configureAdminAccess } from "./admin-access.js";
 import { FIREBASE_CONFIG } from "./config.js";
 import { LS } from "./store.js";
 import { connectNativeSync } from "./native-sync.js";
@@ -40,6 +36,15 @@ export async function initializeFirebase(onError) {
     functionsSDK.connectFunctionsEmulator(functions, "127.0.0.1", 5001);
   }
   const save = functionsSDK.httpsCallable(functions, "saveLeagueChanges");
+  const addAdministrator = functionsSDK.httpsCallable(
+    functions,
+    "addAdministrator",
+  );
+  configureAdminAccess(async (request) => {
+    if (!isAdmin()) throw new Error("Administrator sign-in required.");
+    const { data } = await addAdministrator(request);
+    return data;
+  });
   let queue = Promise.resolve();
   LS.connect({
     canWrite: isAdmin,
@@ -60,7 +65,13 @@ export async function initializeFirebase(onError) {
       google.setCustomParameters({ prompt: "select_account" });
       const { user } = await authSDK.signInWithPopup(auth, google);
       const token = await user.getIdTokenResult(true);
-      setSession(user, token.claims.admin === true);
+      if (token.claims.admin !== true) {
+        await authSDK.signOut(auth);
+        throw new Error(
+          "Administrator access required. Players do not need to sign in.",
+        );
+      }
+      setSession(user, true);
     },
     async signIn(email, password) {
       const { user } = await authSDK.signInWithEmailAndPassword(
@@ -69,26 +80,13 @@ export async function initializeFirebase(onError) {
         password,
       );
       const token = await user.getIdTokenResult(true);
-      setSession(user, token.claims.admin === true);
-    },
-    async signUp(email, password) {
-      const { user } = await authSDK.createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
-      setSession(user, false);
-      await authSDK.sendEmailVerification(user);
-    },
-    verifyEmail: async () => {
-      if (!auth.currentUser) throw new Error("Sign in first.");
-      await authSDK.sendEmailVerification(auth.currentUser);
-    },
-    refreshUser: async () => {
-      if (!auth.currentUser) return;
-      await authSDK.reload(auth.currentUser);
-      const token = await auth.currentUser.getIdTokenResult(true);
-      setSession(auth.currentUser, token.claims.admin === true);
+      if (token.claims.admin !== true) {
+        await authSDK.signOut(auth);
+        throw new Error(
+          "Administrator access required. Players do not need to sign in.",
+        );
+      }
+      setSession(user, true);
     },
     // onIdTokenChanged publishes the refreshed claims to all auth subscribers.
     refreshToken: () => auth.currentUser?.getIdTokenResult(true),
@@ -100,119 +98,28 @@ export async function initializeFirebase(onError) {
     "managePlayerAccount",
   );
   configureAccount(async (request) => (await accountCall(request)).data);
-  let accountUid,
-    accountAdmin,
-    accountEmail,
-    accountVerified,
-    accountGeneration = 0,
-    profileGeneration = 0;
-  let stopAccount = () => {},
-    stopRequests = () => {};
-  const stopAccountSync = subscribeAuth(({ user, admin }) => {
-    if (
-      accountUid === user?.uid &&
-      accountAdmin === admin &&
-      accountEmail === user?.email &&
-      accountVerified === user?.emailVerified
-    )
-      return;
-    accountUid = user?.uid;
-    accountAdmin = admin;
-    accountEmail = user?.email;
-    accountVerified = user?.emailVerified;
+  let stopRequests = () => {};
+  let accountGeneration = 0;
+  const stopAccountSync = subscribeAuth(({ admin }) => {
     const generation = ++accountGeneration;
-    ++profileGeneration;
-    stopAccount();
     stopRequests();
     clearAccount();
-    if (!user) return;
-    let attemptedAutoLink = false;
-    stopAccount = dbSDK.onSnapshot(
-      dbSDK.doc(db, `${LEAGUE_PATH}/accounts/${encodeURIComponent(user.uid)}`),
-      async (snapshot) => {
-        if (generation !== accountGeneration) return;
-        const account = snapshot.data() || null;
-        const profileRevision = ++profileGeneration;
-        if (!account?.playerKey && user.emailVerified && !attemptedAutoLink) {
-          attemptedAutoLink = true;
-          try {
-            const data = await autoLinkAccount();
-            // A successful match arrives through this same account listener.
-            if (data.linked) return;
-          } catch (error) {
-            if (
-              generation === accountGeneration &&
-              profileRevision === profileGeneration
-            )
-              updateAccount({ loaded: true, account, error: error.message });
-            return;
-          }
-          if (
-            generation !== accountGeneration ||
-            profileRevision !== profileGeneration
-          )
-            return;
-        }
-        if (!account?.playerKey && user.emailVerified) {
-          try {
-            const { data } = await accountCall({ action: "claimedProfiles" });
-            if (
-              generation !== accountGeneration ||
-              profileRevision !== profileGeneration
-            )
-              return;
-            updateAccount({ claimedKeys: data.claimedKeys });
-          } catch (error) {
-            if (
-              generation === accountGeneration &&
-              profileRevision === profileGeneration
-            )
-              updateAccount({ loaded: true, error: error.message });
-            return;
-          }
-        }
-        updateAccount({ loaded: true, account, profile: null, error: null });
-        if (account?.playerKey) {
-          try {
-            const { data: profile } = await accountCall({ action: "profile" });
-            if (
-              generation === accountGeneration &&
-              profileRevision === profileGeneration
-            )
-              updateAccount({ profile });
-          } catch (error) {
-            if (
-              generation === accountGeneration &&
-              profileRevision === profileGeneration
-            )
-              updateAccount({ error: error.message });
-          }
-        }
+    if (!admin) return;
+    stopRequests = dbSDK.onSnapshot(
+      dbSDK.collection(db, `${LEAGUE_PATH}/accounts`),
+      (snapshot) => {
+        if (generation === accountGeneration)
+          updateAccount({
+            owners: snapshot.docs
+              .map((doc) => doc.data())
+              .filter((a) => a.playerKey),
+          });
       },
       (error) => {
         if (generation === accountGeneration)
-          updateAccount({ loaded: true, error: error.message });
+          updateAccount({ error: error.message });
       },
     );
-    if (admin)
-      stopRequests = dbSDK.onSnapshot(
-        dbSDK.collection(db, `${LEAGUE_PATH}/accounts`),
-        (snapshot) => {
-          if (generation === accountGeneration)
-            updateAccount({
-              requests: snapshot.docs
-                .map((doc) => doc.data())
-                .filter((a) => a.status === "pending"),
-              owners: snapshot.docs
-                .map((doc) => doc.data())
-                .filter((a) => a.playerKey),
-            });
-        },
-        (error) => {
-          if (generation === accountGeneration)
-            updateAccount({ error: error.message });
-        },
-      );
   });
   let authRevision = 0;
   let tokenUser;
@@ -225,7 +132,10 @@ export async function initializeFirebase(onError) {
       const admin = user
         ? (await user.getIdTokenResult(forceRefresh)).claims.admin === true
         : false;
-      if (revision === authRevision) setSession(user, admin);
+      if (revision === authRevision) {
+        setSession(user, admin);
+        if (user && !admin) await authSDK.signOut(auth);
+      }
     } catch (error) {
       if (revision === authRevision) setSession(null, false);
       onError(error);
@@ -264,7 +174,6 @@ export async function initializeFirebase(onError) {
   await sync.initialized;
   return () => {
     stopAccountSync();
-    stopAccount();
     stopRequests();
     stopAuthSync();
     sync.stop();

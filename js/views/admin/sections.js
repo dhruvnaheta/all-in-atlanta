@@ -267,7 +267,7 @@ export function historyRows(history) {
       <button type="button" aria-expanded="false" aria-controls="gh_${idx}" style="width:100%;border:0;text-align:left;color:inherit;font:inherit;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg2)" data-click="toggleGameHist" data-arg0="gh_${idx}">
         <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           ${badge}
-          <span style="font-weight:600;font-size:13px">${esc(h.date)}</span>
+          <span style="font-weight:600;font-size:13px">${esc(h.gameName || h.date)}</span>${h.gameName ? `<span style="font-size:12px;color:var(--muted)">${esc(h.date)}</span>` : ""}
           <span style="font-size:12px;color:var(--muted)">${h.results.length} players${!isStopped ? " · 🏆 " + esc(winner) : ""}</span>
         </span>
         <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px" class="gh-toggle-lbl">▼ Details</span>

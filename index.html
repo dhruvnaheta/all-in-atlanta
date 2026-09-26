@@ -151,23 +151,6 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <!-- ADMIN OVERLAY -->
-    <div class="overlay" id="adminOverlay" aria-label="Admin — All In Atlanta">
-      <div class="amodal">
-        <div class="amodal-hdr">
-          <div class="amodal-title">⚙ Admin — All In Atlanta</div>
-          <button
-            class="amodal-close"
-            aria-label="Close admin panel"
-            data-click="closeAdmin"
-          >
-            ✕
-          </button>
-        </div>
-        <div class="amodal-body" id="adminBody"></div>
-      </div>
-    </div>
-
     <div class="toast" id="toast"></div>
 
     <!-- NAV -->
@@ -259,7 +242,7 @@
           class="nav-account-btn"
           id="nav-account"
           data-click="openAccount"
-          >Log In</a
+          >Admin</a
         >
       </div>
     </nav>
@@ -273,7 +256,7 @@
     >
       <div id="mobileMore" class="mobile-more" hidden>
         <a href="/account/" id="mobt-account" data-click="openAccount"
-          ><span id="mobileAccountLabel">Log In</span></a
+          ><span id="mobileAccountLabel">Admin</span></a
         >
         <a href="/about/" id="mobt-about" data-click="go" data-arg0="about"
           >About</a
@@ -768,15 +751,36 @@
       </div>
     </div>
 
-    <!-- PERSONAL ACCOUNT -->
+    <!-- ADMIN -->
+    <div class="page" id="page-admin">
+      <div class="ph">
+        <div class="ph-inner account-heading">
+          <div>
+            <div class="sec-tag account-eyebrow">All In Atlanta</div>
+            <h1>Admin</h1>
+          </div>
+          <a
+            href="/account/"
+            class="btn btn-outline-w"
+            data-click="openPlayerAccount"
+            >Admin account</a
+          >
+        </div>
+      </div>
+      <div class="container">
+        <div class="section" id="adminBody"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN SIGN IN -->
     <div class="page" id="page-account">
       <div class="ph">
         <div class="ph-inner account-heading">
           <div>
             <div class="sec-tag account-eyebrow">
-              All In Atlanta · Your player page
+              All In Atlanta · Administration
             </div>
-            <h1 id="accountTitle">My Stats</h1>
+            <h1 id="accountTitle">Admin</h1>
           </div>
           <div class="account-actions" id="accountHeadingActions"></div>
         </div>

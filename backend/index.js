@@ -2,6 +2,8 @@ import { playerAccount } from "./accounts.js";
 import { leagueCommand } from "./commands.js";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import { grantAdministrator } from "./admin-access.js";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import {
   checkIn,
@@ -11,6 +13,21 @@ import {
 } from "./operations.js";
 initializeApp();
 const db = getFirestore();
+export const addAdministrator = onCall(
+  { region: "us-central1", maxInstances: 10 },
+  async (request) => {
+    try {
+      return await grantAdministrator(getAuth(), request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("Administrator access change failed", { code: error.code });
+      throw new HttpsError(
+        "internal",
+        "Administrator access could not be granted. Please try again.",
+      );
+    }
+  },
+);
 function callable(operation, admin = false) {
   return onCall(
     { region: "us-central1", maxInstances: 10 },
@@ -46,10 +63,10 @@ export const manageLeague = callable(leagueCommand, true);
 export const managePlayerAccount = onCall(
   { region: "us-central1", maxInstances: 10 },
   async (request) => {
-    if (!request.auth)
+    if (request.auth?.token.admin !== true)
       throw new HttpsError(
-        "unauthenticated",
-        "Sign in to manage your player account.",
+        "permission-denied",
+        "Administrator sign-in required.",
       );
     try {
       return await playerAccount(db, request.data, new Date(), request.auth);

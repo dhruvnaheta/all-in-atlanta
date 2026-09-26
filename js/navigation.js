@@ -1,6 +1,6 @@
 import { emulator, environmentURL } from "./environment.js";
 import { updateSEO } from "./seo.js";
-import { renderTVTimer, renderGamePage } from "./refresh.js";
+import { renderTVTimer, renderGamePage, renderAdmin } from "./refresh.js";
 import { refreshToken } from "./auth.js";
 import { toast } from "./dom.js";
 const pages = {
@@ -11,7 +11,8 @@ const pages = {
   rules: "League Rules",
   restrictions: "Eligibility & Promotions",
   tv: "Timer",
-  account: "My Account",
+  account: "Admin",
+  admin: "Admin",
 };
 export function initializeNavigation() {
   if (emulator) {
@@ -83,7 +84,9 @@ export function go(page, { history = true } = {}) {
   document
     .querySelectorAll('a[data-click="go"], a[data-click="openAccount"]')
     .forEach((link) => {
-      if (new URL(link.href).pathname === path)
+      if (
+        new URL(link.href).pathname === (page === "admin" ? "/account/" : path)
+      )
         link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
@@ -114,13 +117,15 @@ export function go(page, { history = true } = {}) {
   if (isTV) {
     renderTVTimer();
   } else {
-    const navEl = document.getElementById("nav-" + page);
+    const navPage = page === "admin" ? "account" : page;
+    const navEl = document.getElementById("nav-" + navPage);
     if (navEl) navEl.classList.add("active");
-    const mobEl = document.getElementById("mobt-" + page);
+    const mobEl = document.getElementById("mobt-" + navPage);
     if (mobEl) mobEl.classList.add("active");
     if (mobEl?.closest(".mobile-more"))
       document.getElementById("mobt-more").classList.add("active");
     if (page === "games") renderGamePage();
+    if (page === "admin") renderAdmin();
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }

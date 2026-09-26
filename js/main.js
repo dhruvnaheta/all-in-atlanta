@@ -5,18 +5,8 @@ import {
   setAccountAuthMode,
   authenticateAccount,
   authenticateWithGoogle,
-  requestAccountLink,
-  cancelAccountRequest,
-  searchAccountProfiles,
-  refreshAccountProfiles,
-  checkAccountName,
-  saveAccountProfile,
-  personalCheckIn,
   accountSignOut,
   accountPasswordReset,
-  accountVerifyEmail,
-  accountRefreshUser,
-  reviewAccount,
 } from "./views/account.js";
 import { bindDrafts, clearPrivateDrafts, clearGameDrafts } from "./drafts.js";
 import { getActiveGame } from "./state.js";
@@ -25,9 +15,10 @@ import { getActiveGameId } from "./state.js";
 import { syncTimer, timerJumpTo } from "./timer-controller.js";
 import { LS } from "./store.js";
 import { toast, closeEditPlayer } from "./dom.js";
-import { isAdmin, currentUser, subscribeAuth } from "./auth.js";
+import { isAdmin, subscribeAuth } from "./auth.js";
 
-import { closeAdmin, openAdmin } from "./views/admin.js";
+import { openAdmin } from "./views/admin.js";
+import { adminAddAdministrator } from "./views/admin/access.js";
 import {
   go,
   sR,
@@ -150,7 +141,7 @@ export function scheduleRefresh(keys) {
       syncTimer();
     if (
       isAdmin() &&
-      document.getElementById("adminOverlay").classList.contains("open") &&
+      document.getElementById("page-admin").classList.contains("active") &&
       has(
         "players",
         "history",
@@ -171,7 +162,7 @@ subscribeAccount(() => {
   renderAccount();
   if (
     isAdmin() &&
-    document.getElementById("adminOverlay").classList.contains("open")
+    document.getElementById("page-admin").classList.contains("active")
   )
     drawAdmin();
 });
@@ -181,13 +172,11 @@ subscribeAuth(() => {
     clearPrivateDrafts();
     closeEditPlayer();
   }
-  const label = currentUser() ? "My Account" : "Log In";
+  const label = "Admin";
   document.getElementById("nav-account").textContent = label;
   document.getElementById("mobileAccountLabel").textContent = label;
-  document
-    .getElementById("nav-account")
-    .classList.toggle("authed", !!currentUser());
-  if (document.getElementById("adminOverlay").classList.contains("open"))
+  document.getElementById("nav-account").classList.toggle("authed", isAdmin());
+  if (document.getElementById("page-admin").classList.contains("active"))
     drawAdmin();
 });
 export async function jumpLevel(index) {
@@ -195,35 +184,21 @@ export async function jumpLevel(index) {
 }
 bindDrafts();
 export const actions = {
+  adminAddAdministrator,
   toggleMobileMenu,
-  accountSearchProfiles: () => searchAccountProfiles(),
-  accountRefreshProfiles: () => refreshAccountProfiles(),
-  accountNewName: () => checkAccountName(),
   openAccount: () => {
-    closeAdmin();
-    go("account");
+    go(isAdmin() ? "admin" : "account");
     renderAccount();
-    if (isAdmin()) openAdmin();
   },
   openPlayerAccount: () => {
-    closeAdmin();
     go("account");
     renderAccount();
   },
   accountAuthMode: (element) => setAccountAuthMode(element.dataset.arg0),
   accountAuthenticate: (element) => authenticateAccount(element),
   accountGoogleSignIn: (element) => authenticateWithGoogle(element),
-  accountRequestLink: () => requestAccountLink(),
-  accountCancelRequest: () => cancelAccountRequest(),
-  accountSaveProfile: () => saveAccountProfile(),
-  accountCheckIn: () => personalCheckIn(),
   accountSignOut: () => accountSignOut(),
   accountPasswordReset: () => accountPasswordReset(),
-  accountVerifyEmail: () => accountVerifyEmail(),
-  accountRefreshUser: () => accountRefreshUser(),
-  adminApproveAccount: (element) => reviewAccount(element.dataset.arg0, true),
-  adminRejectAccount: (element) => reviewAccount(element.dataset.arg0, false),
-  closeAdmin: (element, event) => closeAdmin(),
   go: (element, event) => go(element.dataset.arg0),
   openAdmin: (element, event) => openAdmin(),
   sR: (element, event) => sR(element, element.dataset.arg1),

@@ -13,6 +13,7 @@ import {
 import { toast, playerFieldId, esc } from "../../dom.js";
 import { askConfirm, adminAlert } from "./dialogs.js";
 import { commitResults, correctResults } from "../../results.js";
+import { leagueDateKey } from "../../league-date.js";
 import { ptFor } from "../../scoring.js";
 export async function adminSetState(action) {
   await runCommand(action);
@@ -115,6 +116,9 @@ export function submitResults() {
   return completeGame(false);
 }
 
+function getHistoryGameName(record) {
+  return record.date ? "All In Atlanta — " + record.date : "All In Atlanta";
+}
 let editingRecord;
 let correcting = false;
 export function adminEditResults(id) {
@@ -123,7 +127,10 @@ export function adminEditResults(id) {
   if (!record) return;
   editingRecord = structuredClone(record);
   const editor = document.getElementById("historyResultsEditor");
-  editor.innerHTML = `<div class="asec-title">Edit results — ${esc(record.gameName || record.date)}</div>
+  editor.innerHTML = `<div class="asec-title">Edit played game — ${esc(record.gameName || record.date)}</div>
+    <label>Game name <input id="historyGameName" type="text" maxlength="160" value="${esc(record.gameName || getHistoryGameName(record))}"></label>
+    <label>Game date <input id="historyGameDate" type="date" value="${esc(leagueDateKey(record.date) || "")}"></label>
+    <p>Correct the game details or finishing order. Date changes update monthly standings and attendance streaks.</p>
     <p>Enter the actual finishing order. Saving replaces this game's points; attendance stays the same. Unplaced players receive 1 participation point.</p>
     ${record.results
       .map(
@@ -156,19 +163,29 @@ export async function adminSaveResults() {
     ]),
   );
   correcting = true;
-  editor.querySelectorAll("button, select").forEach((el) => {
+  editor.querySelectorAll("button, select, input").forEach((el) => {
     el.disabled = true;
   });
   try {
-    await correctResults({ historyId: before._id, before, positions });
+    const gameName = editor.querySelector("#historyGameName").value.trim();
+    const date = editor.querySelector("#historyGameDate").value;
+    if (!gameName) throw new Error("Enter a game name.");
+    if (!leagueDateKey(date)) throw new Error("Enter a valid game date.");
+    await correctResults({
+      historyId: before._id,
+      before,
+      positions,
+      gameName,
+      date,
+    });
     editingRecord = null;
     editor.replaceChildren();
-    toast("Results corrected. Standings will update automatically.");
+    toast("Game updated. Standings will update automatically.");
   } catch (error) {
     editor.querySelector("[data-result-error]").textContent = error.message;
   } finally {
     correcting = false;
-    editor.querySelectorAll("button, select").forEach((el) => {
+    editor.querySelectorAll("button, select, input").forEach((el) => {
       el.disabled = false;
     });
   }
