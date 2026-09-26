@@ -1,3 +1,4 @@
+import { DERIVED_PLAYER_FIELDS, profileOnly } from "../js/stats.js";
 import { requireRunning } from "../js/game-model.js";
 import {
   LEAGUE_PATH,
@@ -33,9 +34,24 @@ export async function savePatches(db, request) {
       seen.has(patch.path)
     )
       throw new Error("Invalid document path.");
-    if (!/^(players|playerContacts|series)\/[^/]+$/.test(patch.path)) throw new Error("Use the dedicated game operation for this change.");
+    if (!/^(players|playerContacts|series)\/[^/]+$/.test(patch.path))
+      throw new Error("Use the dedicated game operation for this change.");
     if (patch.remove) throw new Error("Use the dedicated delete operation.");
-    if (patch.path.startsWith("players/") && patch.after && ["email","phone","recoveryNote"].some(k=>k in patch.after)) throw new Error("Contact fields must be private.");
+    if (
+      patch.path.startsWith("players/") &&
+      patch.after &&
+      ["email", "phone", "recoveryNote"].some((k) => k in patch.after)
+    )
+      throw new Error("Contact fields must be private.");
+    if (
+      patch.path.startsWith("players/") &&
+      Object.keys(patch.after || {}).some((key) =>
+        DERIVED_PLAYER_FIELDS.includes(key),
+      )
+    )
+      throw new Error(
+        "Player statistics are calculated from recorded results.",
+      );
     seen.add(patch.path);
   }
   return db.runTransaction(async (tx) => {
@@ -50,7 +66,14 @@ export async function savePatches(db, request) {
     const snapshots = await tx.getAll(...refs);
     for (const [i, patch] of patches.entries()) {
       const actual = snapshots[i].data();
-      if (actual?.finalized && patch.after?.state && patch.after.state !== "idle") throw new Error("This game has already been finalized. Launch a new game.");
+      if (
+        actual?.finalized &&
+        patch.after?.state &&
+        patch.after.state !== "idle"
+      )
+        throw new Error(
+          "This game has already been finalized. Launch a new game.",
+        );
       if (patch.create) {
         // Historical participants can acquire a new check-in without losing results.
         if (
@@ -86,8 +109,14 @@ export async function savePatches(db, request) {
     return { saved: true };
   });
 }
-export async function checkIn(db, request, now = new Date(), {admin = false} = {}) {
-  if (request?.action === "remove" && !admin) throw new Error("Administrator sign-in required.");
+export async function checkIn(
+  db,
+  request,
+  now = new Date(),
+  { admin = false } = {},
+) {
+  if (request?.action === "remove" && !admin)
+    throw new Error("Administrator sign-in required.");
   if (!request || typeof request.gameId !== "string")
     throw new Error("Select a game before checking in.");
   // Validate the key before constructing a path.
@@ -127,10 +156,10 @@ export async function checkIn(db, request, now = new Date(), {admin = false} = {
         ? { [request.key]: profileSnapshot.data() }
         : {},
     };
-    const next = applyCheckIn(state, request, now, {admin});
+    const next = applyCheckIn(state, request, now, { admin });
     if (!profileSnapshot.exists && next.players[request.key]) {
       const { profile, contact } = splitPlayer(next.players[request.key]);
-      tx.create(profileRef, profile);
+      tx.create(profileRef, profileOnly(profile));
       tx.create(
         db.doc(`${LEAGUE_PATH}/playerContacts/${playerId(request.key)}`),
         contact,
@@ -181,9 +210,10 @@ export async function finalizeGame(db, request, now = new Date()) {
     const input = Object.fromEntries(
       players.filter((p) => p.exists).map((p) => [p.data().key, p.data()]),
     );
+    const recorded = await tx.get(db.collection(`${LEAGUE_PATH}/history`));
     const result = scoreGame({
       players: input,
-      history: [],
+      history: recorded.docs.map((doc) => doc.data()),
       game,
       tonight,
       positions: request.positions || {},
@@ -195,7 +225,7 @@ export async function finalizeGame(db, request, now = new Date()) {
       alreadyAppliedCount: result.alreadyAppliedCount,
       streakSummary: result.streakSummary,
     };
-    const history = result.history[0] || {
+    const history = result.history.at(-1) || {
       gameId: game.id,
       gameName: game.name,
       date: game.date,
@@ -213,7 +243,10 @@ export async function finalizeGame(db, request, now = new Date()) {
       _order: now.getTime(),
     });
     for (const [key, profile] of Object.entries(result.players))
-      tx.set(db.doc(`${LEAGUE_PATH}/players/${playerId(key)}`), profile);
+      tx.set(
+        db.doc(`${LEAGUE_PATH}/players/${playerId(key)}`),
+        profileOnly(profile),
+      );
     for (const participant of participants.docs) {
       const record = history.results.find(
         (r) => r.key === participant.data().key,

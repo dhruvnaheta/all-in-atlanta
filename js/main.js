@@ -1,5 +1,6 @@
-import {bindDrafts,clearPrivateDrafts,clearGameDrafts} from './drafts.js';
-import {getActiveGame} from './state.js';
+import { atlantaDateKey } from "./league-date.js";
+import { bindDrafts, clearPrivateDrafts, clearGameDrafts } from "./drafts.js";
+import { getActiveGame } from "./state.js";
 import { registerViews, renderPlayerTable } from "./refresh.js";
 import { getActiveGameId } from "./state.js";
 import { syncTimer, timerJumpTo } from "./timer-controller.js";
@@ -30,8 +31,6 @@ import {
 import { cancelConfirm, toggleGameHist } from "./views/admin/dialogs.js";
 import {
   exportPlayerCSV,
-  resetMonthly,
-  resetPlayerStats,
   clearAllPlayers,
   resetAll,
   openEditPlayer,
@@ -85,31 +84,65 @@ registerViews({
   renderPlayerTable: drawPlayers,
 });
 
-export function renderAll(){drawGames();drawRankings();drawStats();drawSchedule();syncTimer();}
-const pendingKeys=new Set();let refreshPending=false;
+export function renderAll() {
+  drawGames();
+  drawRankings();
+  drawStats();
+  drawSchedule();
+  syncTimer();
+}
+const pendingKeys = new Set();
+let refreshPending = false;
 export function scheduleRefresh(keys) {
-  for(const key of keys)pendingKeys.add(key);
-  if(refreshPending)return;refreshPending=true;
-  queueMicrotask(()=>{
-    refreshPending=false;const changed=new Set(pendingKeys);pendingKeys.clear();
-    const has=(...keys)=>keys.some(key=>changed.has(key));
-    if(has('activeGameId')) {clearPrivateDrafts();document.getElementById('editPlayerOverlay')?.remove();}
-    if(has('players','gameList','seriesList','activeGameId','attendance'))drawGames();
-    if(has('players','seriesList'))drawRankings();
-    if(has('players','history','attendance'))drawStats();
-    if(has('seriesList'))drawSchedule();
-    if(has('timerState','levelOverrides','activeGameId'))syncTimer();
-    if(isAdmin() && document.getElementById('adminOverlay').classList.contains('open') && has('players','history','gameList','seriesList','activeGameId','attendance','levelOverrides'))drawAdmin();
-    if(getActiveGame()?.status==='completed')clearGameDrafts(getActiveGameId());
+  for (const key of keys) pendingKeys.add(key);
+  if (refreshPending) return;
+  refreshPending = true;
+  queueMicrotask(() => {
+    refreshPending = false;
+    const changed = new Set(pendingKeys);
+    pendingKeys.clear();
+    const has = (...keys) => keys.some((key) => changed.has(key));
+    if (has("activeGameId")) {
+      clearPrivateDrafts();
+      document.getElementById("editPlayerOverlay")?.remove();
+    }
+    if (has("players", "history", "gameList", "seriesList", "activeGameId", "attendance"))
+      drawGames();
+    if (has("players", "history", "seriesList")) drawRankings();
+    if (has("players", "history", "attendance")) drawStats();
+    if (has("seriesList")) drawSchedule();
+    if (has("timerState", "levelOverrides", "activeGameId")) syncTimer();
+    if (
+      isAdmin() &&
+      document.getElementById("adminOverlay").classList.contains("open") &&
+      has(
+        "players",
+        "history",
+        "gameList",
+        "seriesList",
+        "activeGameId",
+        "attendance",
+        "levelOverrides",
+      )
+    )
+      drawAdmin();
+    if (getActiveGame()?.status === "completed")
+      clearGameDrafts(getActiveGameId());
   });
 }
-LS.subscribe(event=>scheduleRefresh(event.keys || []));
-subscribeAuth(()=>{
-  if(!isAdmin()){clearPrivateDrafts();document.getElementById('editPlayerOverlay')?.remove();}
-  document.getElementById('adminNavBtn').classList.toggle('authed',isAdmin());
-  if(document.getElementById('adminOverlay').classList.contains('open'))drawAdmin();
+LS.subscribe((event) => scheduleRefresh(event.keys || []));
+subscribeAuth(() => {
+  if (!isAdmin()) {
+    clearPrivateDrafts();
+    document.getElementById("editPlayerOverlay")?.remove();
+  }
+  document.getElementById("adminNavBtn").classList.toggle("authed", isAdmin());
+  if (document.getElementById("adminOverlay").classList.contains("open"))
+    drawAdmin();
 });
-export async function jumpLevel(index){await timerJumpTo(index);}
+export async function jumpLevel(index) {
+  await timerJumpTo(index);
+}
 bindDrafts();
 export const actions = {
   closeAdmin: (element, event) => closeAdmin(),
@@ -137,8 +170,6 @@ export const actions = {
   adminSwitchGame: (element, event) => adminSwitchGame(element.value),
   renderPlayerTable: (element, event) => renderPlayerTable(),
   exportPlayerCSV: (element, event) => exportPlayerCSV(),
-  resetMonthly: (element, event) => resetMonthly(),
-  resetPlayerStats: (element, event) => resetPlayerStats(),
   clearAllPlayers: (element, event) => clearAllPlayers(),
   resetAll: (element, event) => resetAll(),
   logout: (element, event) => logout(),
@@ -177,8 +208,6 @@ export const adminActions = new Set([
   "jumpLevel",
   "submitResults",
   "resetAll",
-  "resetMonthly",
-  "resetPlayerStats",
   "clearAllPlayers",
   "saveEditPlayer",
   "deletePlayerProfile",
@@ -203,3 +232,12 @@ initializeFirebase((error) =>
     renderAll();
   })
   .catch((error) => toast("Unable to connect. " + error.message));
+
+let statsDay = atlantaDateKey();
+setInterval(() => {
+  const day = atlantaDateKey();
+  if (day !== statsDay) {
+    statsDay = day;
+    scheduleRefresh(["history"]);
+  }
+}, 30000);

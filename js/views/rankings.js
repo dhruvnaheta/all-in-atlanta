@@ -3,9 +3,8 @@ import {
   getPlayers,
   getSeriesList,
   _getTonight,
-  getHistory,
+  getLeagueStats,
 } from "../state.js";
-import { parseLeagueDate } from "../scoring.js";
 export function rankTable(rows, empty, showStreak = true) {
   if (!rows.length)
     return `<div class="empty-box"><div style="font-size:26px;opacity:.3;margin-bottom:10px">♠</div><div style="font-weight:500">${empty}</div></div>`;
@@ -29,9 +28,11 @@ export function getRows(field) {
         dn: p.dn,
         games:
           filter === "combined"
-            ? p.games
+            ? field === "month"
+              ? p.monthGames
+              : p.games
             : p.bySeries && p.bySeries[filter]
-              ? p.bySeries[filter].games
+              ? p.bySeries[filter][field === "month" ? "monthGames" : "games"]
               : 0,
         streak: Number(p.currentStreak) || 0,
         best: p.best,
@@ -87,19 +88,12 @@ export function renderRankings() {
 export function updateStats() {
   const p = getPlayers(),
     t = _getTonight(),
-    h = getHistory();
+    stats = getLeagueStats();
   const s = (id, v) => {
     const el = document.getElementById(id);
     if (el) el.textContent = v;
   };
   s("s-players", Object.keys(p).length);
-  // 39 reflects the league's historical game count through Sep 13, 2026.
-  // Completed games logged Sep 14 onward are added automatically.
-  const baselineDate = new Date(2026, 8, 14);
-  const gamesSinceBaseline = h.filter((g) => {
-    const d = parseLeagueDate(g && g.date);
-    return d && d >= baselineDate;
-  }).length;
-  s("s-games", 39 + gamesSinceBaseline);
+  s("s-games", stats.totals.games);
   s("s-tonight", t.length);
 }

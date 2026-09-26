@@ -1,69 +1,38 @@
-import {runCommand} from '../../commands.js';
-
+import { runCommand } from "../../commands.js";
 
 import { askConfirm } from "./dialogs.js";
 import { getPlayers, setPlayers } from "../../state.js";
-import { STREAK_TRACKING_VERSION } from "../../scoring.js";
-import {
-  renderGamePage,
-  renderRankings,
-  updateStats,
-  renderAdmin,
-} from "../../refresh.js";
+import { renderRankings, updateStats } from "../../refresh.js";
 import { toast, esc } from "../../dom.js";
 
-export function resetPlayerStats() {
+export function deletePlayerProfile(key) {
   askConfirm(
-    "Reset points, games attended, streaks, and player game history for ALL players? Player profiles and contact information will be kept.",
+    "Delete this player profile and contact information? Historical results remain recorded.",
     async () => {
-      const players = getPlayers();
-      Object.values(players).forEach((p) => {
-        p.total = 0;
-        p.month = 0;
-        p.games = 0;
-        p.best = null;
-        p.gameDates = [];
-        p.currentStreak = 0;
-        p.lastGameDate = null;
-        p.lastStreakGameDate = null;
-        p.lastStreakGameId = null;
-        p.streakTrackingVersion = STREAK_TRACKING_VERSION;
-        p.streakAwardDue = false;
-        p.streakAwardAtGameId = null;
-        p.bySeries = {};
-      });
-      await setPlayers(players);
-      renderGamePage();
-      renderRankings();
-      updateStats();
-      renderAdmin();
-      renderPlayerTable();
-      toast("All player stats reset. Profiles kept.");
+      await runCommand("deletePlayer", { key });
+      document.getElementById("editPlayerOverlay")?.remove();
+      toast("Player profile deleted.");
     },
   );
 }
-
-export function deletePlayerProfile(key) {
-  askConfirm('Delete this player profile and contact information? Historical results remain recorded.',async()=>{
-    await runCommand('deletePlayer',{key});document.getElementById('editPlayerOverlay')?.remove();toast('Player profile deleted.');
-  });
+export function clearAllPlayers() {
+  askConfirm(
+    "Delete all player profiles and contacts? Historical results remain recorded.",
+    async () => {
+      await runCommand("clearPlayers");
+      toast("Players cleared.");
+    },
+  );
 }
-export function clearAllPlayers(){askConfirm('Delete all player profiles and contacts? Historical results remain recorded.',async()=>{await runCommand('clearPlayers');toast('Players cleared.');});}
-export function resetMonthly() {
-  askConfirm("Reset all monthly points to zero?", async () => {
-    const p = getPlayers();
-    Object.values(p).forEach((pl) => {
-      pl.month = 0;
-      if (pl.bySeries)
-        Object.values(pl.bySeries).forEach((bs) => (bs.month = 0));
-    });
-    await setPlayers(p);
-    renderRankings();
-    renderAdmin();
-    toast("Monthly points reset.");
-  });
+export function resetAll() {
+  askConfirm(
+    "Permanently delete all league games, players, contacts, series and history?",
+    async () => {
+      await runCommand("wipeAll");
+      toast("All league data cleared.");
+    },
+  );
 }
-export function resetAll(){askConfirm('Permanently delete all league games, players, contacts, series and history?',async()=>{await runCommand('wipeAll');toast('All league data cleared.');});}
 export function renderPlayerTable() {
   const tbody = document.getElementById("playerDataBody");
   if (!tbody) return;
@@ -128,27 +97,7 @@ export function openEditPlayer(key) {
           <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DISPLAY NAME</div>
           <input id="ep_name" value="${esc(p.dn)}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
         </div>
-        <div style="display:flex;gap:10px">
-          <div style="flex:1">
-            <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">TOTAL POINTS</div>
-            <input id="ep_total" type="number" value="${p.total || 0}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">MONTHLY PTS</div>
-            <input id="ep_month" type="number" value="${p.month || 0}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px">
-          <div style="flex:1">
-            <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">GAMES PLAYED</div>
-            <input id="ep_games" type="number" value="${p.games || 0}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">STREAK (wks)</div>
-            <input id="ep_streak" type="number" value="${p.currentStreak || 0}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);padding:6px 10px;background:#f7f5f0;border-radius:5px">⚠️ Manual edits override calculated values.</div>
+        <div style="font-size:12px;color:var(--muted)">Points, games, and streaks are calculated from recorded game results. Monthly points roll over automatically in Atlanta time.</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:20px">
         <button data-click="saveEditPlayer" data-arg0="${esc(key)}" style="flex:1;background:var(--green);color:#fff;border:none;border-radius:7px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;cursor:pointer">SAVE</button>
@@ -167,19 +116,7 @@ export async function saveEditPlayer(key) {
   const p = players[key];
   if (!p) return;
   const name = (document.getElementById("ep_name")?.value || "").trim();
-  const total =
-    parseInt(document.getElementById("ep_total")?.value || "0") || 0;
-  const month =
-    parseInt(document.getElementById("ep_month")?.value || "0") || 0;
-  const games =
-    parseInt(document.getElementById("ep_games")?.value || "0") || 0;
-  const streak =
-    parseInt(document.getElementById("ep_streak")?.value || "0") || 0;
   if (name) p.dn = name;
-  p.total = total;
-  p.month = month;
-  p.games = games;
-  p.currentStreak = streak;
   await setPlayers(players);
   document.getElementById("editPlayerOverlay")?.remove();
   renderPlayerTable();

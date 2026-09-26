@@ -1,3 +1,4 @@
+import { profileOnly } from "./stats.js";
 // Native Firestore schema. Legacy keys remain view-model identifiers, never paths.
 export const LEAGUE_PATH = "leagues/atlanta-v2";
 export const playerId = (key) => "p_" + encodeURIComponent(key);
@@ -37,7 +38,7 @@ export function stateDocuments(key, value, context = {}) {
     for (const series of value || [])
       docs[`series/${safeId(series.id)}`] = series;
   } else if (key === "gameList") {
-    for (const [index,game] of (value || []).entries()) {
+    for (const [index, game] of (value || []).entries()) {
       const { tonight = [], ...fields } = game;
       const path = `games/${safeId(game.id)}`;
       docs[path] = { ...fields, scheduled: true };
@@ -81,8 +82,17 @@ export function stateDocuments(key, value, context = {}) {
 // Patches carry only changed fields and their prior values. The server checks these
 // inside a transaction, allowing unrelated simultaneous edits without lost updates.
 export function documentPatches(key, before, after, context) {
-  const previous = stateDocuments(key, before, context);
-  const next = stateDocuments(key, after, context);
+  const project = (value) =>
+    key === "players"
+      ? Object.fromEntries(
+          Object.entries(value || {}).map(([id, player]) => [
+            id,
+            profileOnly(player),
+          ]),
+        )
+      : value;
+  const previous = stateDocuments(key, project(before), context);
+  const next = stateDocuments(key, project(after), context);
   return [...new Set([...Object.keys(previous), ...Object.keys(next)])].flatMap(
     (path) => {
       const old = previous[path],

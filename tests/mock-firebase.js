@@ -1,3 +1,4 @@
+import {atlantaDateKey} from "/js/league-date.js";
 // The browser suite swaps only the remote gateway; domain calculations are shared.
 import {LS} from '/js/store.js';
 import {DEFAULT_STATE} from '/js/sync.js';
@@ -13,6 +14,7 @@ import {startTimer,pauseTimer,jumpTimer,resetTimer} from '/js/timer.js';
 import {levelDur} from '/js/blinds.js';
 export async function initializeFirebase() {
   LS.applySnapshot({...DEFAULT_STATE,
+    history:[{gameId:'previous',date:atlantaDateKey(),seriesId:'s_wickedwolf',results:[{key:'alice',pos:1,pts:25}]}],
     players:{alice:{key:'alice',dn:'Alice',total:25,month:25,games:1,gameDates:[],email:'alice@example.test'}},
     seriesList:[{id:'s_wickedwolf',name:'Wicked Wolf League',venue:'Wicked Wolf',day:4,time:'8:00 PM'}],
     gameList:[{id:'g_test',seriesId:'s_wickedwolf',name:'Thursday Test',date:'Sep 24, 2026',status:'running',registrationOpen:true}],activeGameId:'g_test'});

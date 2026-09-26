@@ -97,7 +97,7 @@ test("admin check-in, timer pause/resume and scoring preserve persisted state", 
   });
   expect(state.p.total).toBe(50);
   expect(state.p.games).toBe(2);
-  expect(state.h).toHaveLength(1);
+  expect(state.h).toHaveLength(2);
   await page.locator('[data-click="logout"]').click();
   await expect(page.locator("#loginEmail")).toBeVisible();
 });
@@ -110,9 +110,7 @@ test("remote updates refresh rankings and timer while keeping a registration dra
   await page.locator("#pubNpEmail").fill("draft@example.test");
   await page.evaluate(async () => {
     const { LS } = await import("/js/store.js");
-    const p = LS.get("players");
-    p.alice.total = 75;
-    LS.applyRemote("players", p);
+    LS.applyRemote("history", [...LS.get("history"), {gameId:"remote", date:"Sep 24, 2026", results:[{key:"alice",pos:1,pts:25}]}]);
     LS.applyRemote("timerState", {
       levelIdx: 1,
       levelStartTs: Date.now(),
@@ -120,6 +118,8 @@ test("remote updates refresh rankings and timer while keeping a registration dra
       running: true,
     });
   });
+  await expect(page.locator("#home-rankings .pts-pill")).toHaveText("50");
+  await expect(page.locator("#s-games")).toHaveText("2");
   await expect(page.locator("#pubNpEmail")).toHaveValue("draft@example.test");
   await expect(page.locator("#pubNpName")).toHaveText("Draft Player");
   await expect(page.locator("#pubNpForm")).toBeVisible();
@@ -163,4 +163,15 @@ test('remote attendance preserves finishing-position drafts and completed games 
   await page.locator('[data-click="submitResults"]').click();
   await expect(page.locator('#adminBody')).toContainText('Game completed');
   await expect(page.locator('[data-click="adminSetState"]')).toHaveCount(0);
+});
+
+test("profile editor has no aggregate overrides or reset buttons", async ({page}) => {
+  await login(page);
+  await expect(page.locator('[data-click="resetMonthly"],[data-click="resetPlayerStats"]')).toHaveCount(0);
+  await page.locator('[data-click="openEditPlayer"]').click();
+  await expect(page.locator('#ep_total,#ep_month,#ep_games,#ep_streak')).toHaveCount(0);
+  await page.locator('#ep_name').fill('Alice Updated');
+  await page.locator('[data-click="saveEditPlayer"]').click();
+  await expect(page.locator('#playerDataBody')).toContainText('Alice Updated');
+  expect(await page.evaluate(async () => (await import('/js/state.js')).getPlayers().alice.total)).toBe(25);
 });

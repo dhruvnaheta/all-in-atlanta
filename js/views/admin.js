@@ -137,8 +137,6 @@ export function renderAdmin() {
     <div class="asec">
       <div class="asec-title">Data Management</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-red" data-click="resetMonthly">Reset Monthly Points</button>
-        <button class="btn btn-red" data-click="resetPlayerStats">Reset All Player Stats</button>
         <button class="btn btn-red" data-click="clearAllPlayers">Clear All Players</button>
         <button class="btn btn-red" data-click="resetAll">Wipe All Data</button>
       </div>

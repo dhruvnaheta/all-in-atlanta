@@ -42,11 +42,11 @@ const scoringInput = () => ({
   positions: { alice: "1" },
 });
 
-test("scoring preserves existing totals, awards participation, and leaves its input untouched", () => {
+test("scoring derives totals from results, awards participation, and leaves its input untouched", () => {
   const input = scoringInput();
   const result = scoreGame(input);
-  assert.equal(result.players.alice.total, 35);
-  assert.equal(result.players.alice.games, 4);
+  assert.equal(result.players.alice.total, 25);
+  assert.equal(result.players.alice.games, 1);
   assert.equal(result.players.bob.total, 1);
   assert.equal(result.players.bob.games, 1);
   assert.equal(result.history[0].attendanceCount, 2);
@@ -64,13 +64,13 @@ test("a repeated game is rejected, including the stop-game path", () => {
       /already been scored/,
     );
 });
-test("a partially saved per-player record is not awarded twice", () => {
+test("an obsolete profile ledger cannot suppress a new result", () => {
   const input = scoringInput();
   input.players.alice.gameDates = [{ gameId: game.id }];
   const result = scoreGame(input);
-  assert.equal(result.players.alice.total, 10);
-  assert.equal(result.players.alice.games, 3);
-  assert.equal(result.alreadyAppliedCount, 1);
+  assert.equal(result.players.alice.total, 25);
+  assert.equal(result.players.alice.games, 1);
+  assert.equal(result.alreadyAppliedCount, 0);
   assert.equal(result.history[0].attendanceCount, 2);
 });
 test("invalid and duplicate placements reject the entire scoring update", () => {
@@ -86,7 +86,7 @@ test("invalid and duplicate placements reject the entire scoring update", () => 
 });
 test("stopping a game awards participation through the same ledger", () => {
   const result = scoreGame({ ...scoringInput(), stopped: true });
-  assert.equal(result.players.alice.total, 11);
+  assert.equal(result.players.alice.total, 1);
   assert.equal(result.history[0].stopped, true);
   assert.equal(result.players.alice.gameDates[0].pts, 1);
 });
@@ -164,7 +164,7 @@ test("timer advances at the boundary, handles breaks and repeats its final level
 function checkInState() {
   return {
     players: { alice: structuredClone(player) },
-    gameList: [{ ...game, state:"open", tonight: [] }],
+    gameList: [{ ...game, state: "open", tonight: [] }],
     activeGameId: game.id,
     gameState: "closed",
     tonight: [],
