@@ -4,6 +4,7 @@ let state = {
   account: null,
   profile: null,
   requests: [],
+  owners: [],
   error: null,
 };
 let command;
@@ -23,6 +24,7 @@ export function clearAccount() {
     account: null,
     profile: null,
     requests: [],
+    owners: [],
     error: null,
   });
 }

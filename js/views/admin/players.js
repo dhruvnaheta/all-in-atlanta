@@ -1,3 +1,4 @@
+import { getAccountState, accountCommand } from "../../account.js";
 import { validateContact } from "../../contact.js";
 import { runCommand } from "../../commands.js";
 
@@ -70,6 +71,7 @@ export function openEditPlayer(key) {
   const p = players[key];
   if (!p) return;
   closeEditPlayer();
+  const owner = getAccountState().owners.find((a) => a.playerKey === key);
   const overlay = document.createElement("div");
   overlay.id = "editPlayerOverlay";
   overlay.style.cssText =
@@ -82,7 +84,9 @@ export function openEditPlayer(key) {
           <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DISPLAY NAME</div>
           <input aria-label="Display name" id="ep_name" value="${esc(p.dn)}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
         </div>
-        <label>Email<input id="ep_email" type="email" value="${esc(p.email || "")}" style="width:100%;padding:8px"/></label>
+        <p>Account owner: ${owner ? esc(owner.email || owner.uid) : "Unlinked"}</p>
+        ${owner ? '<button class="btn btn-ghost" id="unlinkPlayerAccount">Unlink account</button>' : ""}
+        <label>Contact email<input id="ep_email" type="email" value="${esc(p.email || "")}" style="width:100%;padding:8px"/></label>
         <label>Phone<input id="ep_phone" type="tel" value="${esc(p.phone || "")}" style="width:100%;padding:8px"/></label>
         <div id="editPlayerError" role="alert"></div>
         <div style="font-size:12px;color:var(--muted)">Points, games, and streaks are calculated from recorded game results. Monthly points roll over automatically in Atlanta time.</div>
@@ -109,6 +113,22 @@ export function openEditPlayer(key) {
       <button data-click="deletePlayerProfile" data-arg0="${esc(key)}" style="width:100%;margin-top:10px;background:#dc2626;color:#fff;border:none;border-radius:7px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer">DELETE PROFILE</button>
     </div>`;
   overlay.setAttribute("aria-labelledby", "editPlayerTitle");
+  overlay
+    .querySelector("#unlinkPlayerAccount")
+    ?.addEventListener("click", () => {
+      askConfirm(
+        `Unlink ${owner.email || owner.uid} from "${p.dn}"? Their profile access will end. Stats and contact details are preserved. Correct the contact email before approving a replacement request.`,
+        async () => {
+          await accountCommand({
+            action: "unlink",
+            uid: owner.uid,
+            playerKey: key,
+          });
+          closeEditPlayer();
+          toast("Account unlinked. The player can submit a new request.");
+        },
+      );
+    });
   document.body.appendChild(overlay);
   openModal(overlay, closeEditPlayer);
   overlay.addEventListener("click", (e) => {

@@ -1,3 +1,4 @@
+import { askConfirm } from "./admin/dialogs.js";
 import { validateContact } from "../contact.js";
 import {
   searchPlayers,
@@ -197,7 +198,7 @@ export function renderAccount() {
       : "My Stats";
   const headingActions = document.getElementById("accountHeadingActions");
   headingActions.innerHTML = user
-    ? `${isAdmin() ? '<button class="btn btn-gold" data-click="openAdmin">Admin view</button>' : ""}<button class="btn btn-outline-w" data-click="accountSignOut">Sign out</button>`
+    ? `${isAdmin() ? `<button class="btn btn-gold" data-click="openAdmin">Admin view (${getAccountState().requests.length})</button>` : ""}<button class="btn btn-outline-w" data-click="accountSignOut">Sign out</button>`
     : "";
   if (!user) {
     // Keep typed credentials during unrelated live league updates.
@@ -356,29 +357,47 @@ export async function accountRefreshUser() {
     toast("Your email isn’t verified yet. Open the link in your email first.");
 }
 export function accountRequestMarkup() {
-  const { requests } = getAccountState();
+  const { requests, owners } = getAccountState();
   return `<div class="asec" id="accountApprovalSection"><div class="asec-title">Player Account Requests${requests.length ? ` (${requests.length})` : ""}</div><p class="account-muted">Confirm each person’s identity before connecting their results.</p>${
     requests.length
-      ? requests
+      ? [...requests]
+          .sort((a, b) =>
+            (a.requestedAt || "").localeCompare(b.requestedAt || ""),
+          )
           .map(
             (r) =>
-              `<div class="account-request"><div><strong>${esc(r.requestedName)}</strong><div class="account-muted">${esc(r.email)} · ${r.newPlayer ? "New player" : "Existing player"}</div>${
-                r.newPlayer &&
-                similarPlayers(getPlayers(), r.requestedName).length
-                  ? `<p class="account-muted">Check possible duplicates before approval: ${similarPlayers(
-                      getPlayers(),
-                      r.requestedName,
-                    )
-                      .map((p) => esc(p.dn))
-                      .join(", ")}</p>`
-                  : ""
-              }</div><div class="account-actions"><button class="btn btn-green-sm" data-click="adminApproveAccount" data-arg0="${esc(r.uid)}">Approve</button><button class="btn btn-ghost" data-click="adminRejectAccount" data-arg0="${esc(r.uid)}">Decline</button></div></div>`,
+              `<div class="account-request"><div><strong>${esc(r.requestedName)}</strong><div class="account-muted">Sign-in: ${esc(r.email || r.uid)} · ${r.newPlayer ? "New player" : "Existing player"}</div>
+                <div class="account-muted">Requested: ${esc(r.requestedAt ? new Date(r.requestedAt).toLocaleString() : "Time unavailable")}</div>
+                <div class="account-muted">Contact on file: ${esc(getPlayers()[r.requestedKey]?.email || "No email")} · ${esc(getPlayers()[r.requestedKey]?.phone || "No phone")}</div>
+                ${requests.filter((other) => other.requestedKey === r.requestedKey).length > 1 ? '<p role="status">Competing requests for this profile. Compare identities before approving; other requests will be declined.</p>' : ""}
+                ${owners.some((owner) => owner.playerKey === r.requestedKey) ? "<p>Already owned. Decline this request or correct ownership in Edit.</p>" : ""}
+                ${
+                  r.newPlayer &&
+                  similarPlayers(getPlayers(), r.requestedName).length
+                    ? `<p class="account-muted">Check possible duplicates before approval: ${similarPlayers(
+                        getPlayers(),
+                        r.requestedName,
+                      )
+                        .map((p) => esc(p.dn))
+                        .join(", ")}</p>`
+                    : ""
+                }</div><div class="account-actions"><button class="btn btn-green-sm" data-click="adminApproveAccount" data-arg0="${esc(r.uid)}" ${owners.some((owner) => owner.playerKey === r.requestedKey) ? "disabled" : ""}>Approve</button><button class="btn btn-ghost" data-click="adminRejectAccount" data-arg0="${esc(r.uid)}">Decline</button></div></div>`,
           )
           .join("")
       : '<p class="account-muted">No player accounts waiting for approval.</p>'
   }</div>`;
 }
-export async function reviewAccount(uid, approve) {
-  await accountCommand({ action: approve ? "approveLink" : "rejectLink", uid });
-  toast(approve ? "Player account linked." : "Request declined.");
+export function reviewAccount(uid, approve) {
+  const request = getAccountState().requests.find((r) => r.uid === uid);
+  if (!request) return;
+  askConfirm(
+    `${approve ? "Approve" : "Decline"} ${request.email || uid} for "${request.requestedName}"?${approve ? " This grants access to the profile and declines competing requests." : " They can submit a new request."}`,
+    async () => {
+      await accountCommand({
+        action: approve ? "approveLink" : "rejectLink",
+        uid,
+      });
+      toast(approve ? "Player account linked." : "Request declined.");
+    },
+  );
 }

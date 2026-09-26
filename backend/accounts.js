@@ -71,12 +71,46 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       phone: contact.phone || "",
     };
   }
+  const closeCompetitors = (tx, snapshot, winner) => {
+    for (const doc of snapshot.docs) {
+      const account = doc.data();
+      if (account.uid !== winner && account.status === "pending")
+        tx.update(doc.ref, {
+          status: "rejected",
+          reviewReason: "Profile linked to another account",
+          reviewedAt: now.toISOString(),
+          reviewedBy: auth.uid,
+        });
+    }
+  };
   return db.runTransaction(async (tx) => {
     const control = await tx.get(ref("operations/control"));
     if (control.data()?.writesEnabled !== true)
       throw new Error(
         "League maintenance is in progress. Please try again shortly.",
       );
+    if (action === "unlink") {
+      if (!admin) throw new Error("Administrator sign-in required.");
+      const uid = clean(request.uid, 128);
+      const target = ref(`accounts/${encodeURIComponent(uid)}`);
+      const account = (await tx.get(target)).data();
+      if (!account?.playerKey || account.playerKey !== request.playerKey)
+        throw new Error("Ownership changed. Refresh and try again.");
+      const linkRef = ref(`playerAccounts/${playerId(account.playerKey)}`);
+      const link = await tx.get(linkRef);
+      if (link.data()?.uid !== uid)
+        throw new Error("Ownership changed. Refresh and try again.");
+      tx.delete(linkRef);
+      tx.set(target, {
+        uid,
+        email: account.email || "",
+        status: "unlinked",
+        autoLinkBlocked: true,
+        unlinkedAt: now.toISOString(),
+        unlinkedBy: auth.uid,
+      });
+      return { saved: true };
+    }
     if (action === "autoLink") {
       const email = normalizedEmail(auth.token?.email);
       if (
@@ -86,8 +120,7 @@ export async function playerAccount(db, request, now = new Date(), auth) {
         return { linked: false };
       const current = (await tx.get(ownRef)).data();
       if (current?.playerKey) return { linked: true };
-      // Do not override an administrator's rejection or a different pending claim.
-      if (current?.status === "rejected") return { linked: false };
+      if (current?.autoLinkBlocked) return { linked: false };
       // Legacy contacts have no normalized index. Scan privately in the transaction
       // so case/whitespace variants and duplicate addresses cannot evade matching.
       const contacts = await tx.get(
@@ -102,15 +135,14 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       if (!profile.exists) return { linked: false };
       const key = validKey(profile.data().key);
       if (playerId(key) !== id) return { linked: false };
-      if (
-        current?.status === "pending" &&
-        (current.newPlayer ||
-          current.requestedKey !== key ||
-          !current.requestedPlayerCreatedAt?.isEqual(profile.createTime))
-      )
-        return { linked: false };
       const linkRef = ref(`playerAccounts/${id}`);
       if ((await tx.get(linkRef)).exists) return { linked: false };
+      const competitors = await tx.get(
+        db
+          .collection(`${LEAGUE_PATH}/accounts`)
+          .where("requestedKey", "==", key),
+      );
+      closeCompetitors(tx, competitors, auth.uid);
       tx.create(linkRef, { uid: auth.uid, playerKey: key });
       tx.set(ownRef, {
         uid: auth.uid,
@@ -218,6 +250,12 @@ export async function playerAccount(db, request, now = new Date(), auth) {
         throw new Error(
           "The player identity changed or this request predates identity verification. Reject it and ask the player to submit a new request.",
         );
+      const competitors = await tx.get(
+        db
+          .collection(`${LEAGUE_PATH}/accounts`)
+          .where("requestedKey", "==", key),
+      );
+      closeCompetitors(tx, competitors, uid);
       const playerIdentity = profile.exists ? null : randomUUID();
       if (!profile.exists) {
         tx.create(profileRef, {

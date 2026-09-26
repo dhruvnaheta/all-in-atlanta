@@ -60,6 +60,7 @@ export function renderAdmin() {
     body,
     `
     <div class="aalert" id="aalert" data-preserve></div>
+    ${accountRequestMarkup()}
 
 
     <div class="asec">
@@ -111,7 +112,6 @@ export function renderAdmin() {
       <div id="historyResultsEditor" data-preserve></div>
     </div>
 
-    ${accountRequestMarkup()}
     <div class="asec">
       <div class="asec-title">Player Data</div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">

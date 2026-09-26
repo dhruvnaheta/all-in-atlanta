@@ -162,6 +162,10 @@ for (const autoMatch of [false, true])
               `[data-click="adminApproveAccount"][data-arg0="${user.uid}"]`,
             )
             .click();
+          await expect(adminPage.locator("#aconfirm")).toContainText(
+            "account-player@example.test",
+          );
+          await adminPage.locator("#aconfirm-yes").click();
         }
         await expect(page.locator("#accountTitle")).toHaveText(
           "Hey, Account Alice",

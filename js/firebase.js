@@ -178,13 +178,17 @@ export async function initializeFirebase(onError) {
     );
     if (admin)
       stopRequests = dbSDK.onSnapshot(
-        dbSDK.query(
-          dbSDK.collection(db, `${LEAGUE_PATH}/accounts`),
-          dbSDK.where("status", "==", "pending"),
-        ),
+        dbSDK.collection(db, `${LEAGUE_PATH}/accounts`),
         (snapshot) => {
           if (generation === accountGeneration)
-            updateAccount({ requests: snapshot.docs.map((doc) => doc.data()) });
+            updateAccount({
+              requests: snapshot.docs
+                .map((doc) => doc.data())
+                .filter((a) => a.status === "pending"),
+              owners: snapshot.docs
+                .map((doc) => doc.data())
+                .filter((a) => a.playerKey),
+            });
         },
         (error) => {
           if (generation === accountGeneration)
