@@ -55,14 +55,26 @@ if (command === 'backup') {
       for (const [i,doc] of docs.entries()) if (!doc.exists || !equal(doc.data(),chunk[i][1])) throw new Error(`Verification failed: ${chunk[i][0]}`);
     }
     // Count recursively, including subcollections whose parent documents are absent.
-    async function count(ref) {
-      let total=0;
-      for (const collection of await ref.listCollections()) {
-        if (ref.path === LEAGUE_PATH && collection.id === 'operations') continue;
-        for (const doc of await collection.listDocuments()) {
-          if ((await doc.get()).exists) total++;
-          total += await count(doc);
-        }
+    async function count(root) {
+      let total = 0;
+      const pending = [root];
+      // Bound concurrency so verification remains practical over production latency.
+      while (pending.length) {
+        const group = pending.splice(0,25);
+        const descendants = await Promise.all(group.map(async ref => {
+          const next = [];
+          for (const collection of await ref.listCollections()) {
+            if (ref.path === LEAGUE_PATH && collection.id === 'operations') continue;
+            const refs = await collection.listDocuments();
+            for (let start=0;start<refs.length;start+=200) {
+              const docs = await db.getAll(...refs.slice(start,start+200));
+              total += docs.filter(doc => doc.exists).length;
+            }
+            next.push(...refs);
+          }
+          return next;
+        }));
+        pending.push(...descendants.flat());
       }
       return total;
     }
