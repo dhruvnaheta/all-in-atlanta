@@ -9,6 +9,19 @@ export function bindActions(actions, root = document) {
       const name = element.dataset[type],
         action = actions[name];
       if (!action) return;
+      if (type === "click" && element.matches("a[href]")) {
+        if (
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          element.target === "_blank" ||
+          element.hasAttribute("download")
+        )
+          return;
+        event.preventDefault();
+      }
       if (type === "submit") event.preventDefault();
       const key = name + ":" + (element.dataset.arg0 || "");
       if (pending.has(key)) return;

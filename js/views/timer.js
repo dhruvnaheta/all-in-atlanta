@@ -164,7 +164,7 @@ export function renderTVTimer() {
     <div style="color:rgba(255,255,255,.45);font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,3vw,28px);letter-spacing:2px;margin-top:8px">
       UP NEXT &nbsp; <span style="color:rgba(255,255,255,.75);font-weight:600">${nextLabel}</span>
     </div>
-    <button data-click="go" data-arg0="games" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);padding:8px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .15s">EXIT</button>
+    <a href="/games/" data-click="go" data-arg0="games" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);padding:8px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .15s">EXIT</a>
   `;
 }
 

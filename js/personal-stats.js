@@ -1,18 +1,15 @@
+import { standings } from "./standings.js";
 // Read-only presentation of the shared calculated player projection.
 import { nextScheduledLeagueDate, STREAK_TRACKING_VERSION } from "./scoring.js";
 const number = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 export function standing(players, key, field = "total", seriesId) {
-  const score = (player) =>
-    number(seriesId ? player.bySeries?.[seriesId]?.[field] : player[field]);
-  const mine = score(players[key] || {});
-  const scores = Object.values(players)
-    .map(score)
-    .filter((value) => value > 0);
-  const above = scores.filter((value) => value > mine);
+  const rows = standings(players, field, seriesId);
+  const mine = rows.find((row) => row.key === key);
+  const above = rows.filter((row) => row.pts > (mine?.pts || 0));
   return {
-    points: mine,
-    rank: mine > 0 ? above.length + 1 : null,
-    gap: above.length ? Math.min(...above) - mine : 0,
+    points: mine?.pts || 0,
+    rank: mine?.rank || null,
+    gap: above.length ? Math.min(...above.map((row) => row.pts)) - mine.pts : 0,
   };
 }
 export function personalStats(players, key) {

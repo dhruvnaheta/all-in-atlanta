@@ -1,3 +1,8 @@
+import {
+  isCheckInOpen,
+  upcomingGames,
+  completedResults,
+} from "../public-games.js";
 import { renderMarkup } from "../render.js";
 import { getActiveGameId } from "../state.js";
 import { setRegistration, clearRegistration } from "../drafts.js";
@@ -7,8 +12,9 @@ import {
   getActiveGame,
   getSeriesList,
   getPlayers,
+  getHistory,
 } from "../state.js";
-import { DAYS } from "../schedule.js";
+import { DAYS, WEEKLY_GAMES, venueLabel } from "../schedule.js";
 import { esc, toast } from "../dom.js";
 import { _renderClockEl } from "./timer.js";
 import {
@@ -25,29 +31,50 @@ export function renderGamePage() {
 
   // Resolve venue info from active game's series
   const activeGame = getActiveGame();
+  const canCheckIn = isCheckInOpen(activeGame);
+  const action = document.getElementById("homeGameAction");
+  if (action)
+    action.textContent = canCheckIn
+      ? "Check In for Tonight"
+      : "View Game Schedule";
+  const upcoming = document.getElementById("upcomingGames");
+  if (upcoming)
+    upcoming.innerHTML =
+      upcomingGames(getSeriesList().length ? getSeriesList() : WEEKLY_GAMES)
+        .map(
+          (series) => `
+    <div class="sched-card"><div class="sched-day">${DAYS[series.day]} · ${esc(series.date)}</div>
+    <div class="sched-venue">${esc(venueLabel(series.venue))}</div><div class="sched-time">${esc(series.time)}</div>
+    <span class="badge badge-pts">${canCheckIn && activeGame.seriesId === series.id ? "Check-in open above" : "Scheduled · check-in not open"}</span></div>`,
+        )
+        .join("") || "<p>No upcoming games have been announced.</p>";
+  const results =
+    state === "completed" ? completedResults(activeGame, getHistory()) : null;
   const activeSeries =
     activeGame && activeGame.seriesId
       ? getSeriesList().find((s) => s.id === activeGame.seriesId)
       : null;
-  const venueName = activeSeries ? activeSeries.venue : "Wicked Wolf";
+  const venueName = activeSeries
+    ? venueLabel(activeSeries.venue)
+    : "Weekly Games";
   const venueSub = activeSeries
     ? "Every " + DAYS[activeSeries.day] + " · " + activeSeries.time
-    : "Every Thursday · 8:00 PM";
+    : "Monday & Thursday · Wicked Wolf · Wednesday · 5 Paces · 8:00 PM";
 
   if (state === "running") {
-    hdrSt.innerHTML = `<span style="display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(255,255,255,.7)"><span class="dot-live"></span>${activeGame.registrationOpen ? "Check-in open" : "Game running · check-in closed"}</span>`;
+    hdrSt.innerHTML = `<span style="display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(255,255,255,.7)"><span class="dot-live"></span>${canCheckIn ? "Check-in open" : "Game running · check-in closed"}</span>`;
   } else {
     hdrSt.innerHTML = "";
   }
 
   let inner = `
     <div class="gsc-header">
-      <div><div class="gsc-venue">${esc(venueName)}</div><div class="gsc-sub">${esc(venueSub)}</div></div>
-      <div>${stateBadge(state, activeGame?.registrationOpen)}</div>
+      <div><div class="gsc-venue">${esc(venueName)}</div><div class="gsc-sub">${esc(venueSub)}${activeGame?.date ? " · " + esc(activeGame.date) : ""}</div></div>
+      <div>${stateBadge(state, canCheckIn)}</div>
     </div>
     <div class="gsc-meta">
       <div class="gsc-cell"><span class="gsc-label">Format</span><span class="gsc-val">Texas Hold'em</span></div>
-      <div class="gsc-cell"><span class="gsc-label">Checked in</span><span class="gsc-val">${tonight.length} player${tonight.length !== 1 ? "s" : ""}</span></div>
+      <div class="gsc-cell"><span class="gsc-label">Checked in</span><span class="gsc-val">${state === "completed" ? (results === null ? "History unavailable" : results.length + " recorded players") : tonight.length + " players"}</span></div>
     </div>`;
 
   // Blind clock — show when game active
@@ -55,11 +82,11 @@ export function renderGamePage() {
     inner += `<div class="blind-clock" id="pubClock"></div>`;
   }
 
-  if (state !== "running" || !activeGame.registrationOpen) {
+  if (!canCheckIn) {
     inner += `<div class="no-game-notice">
       <div style="font-size:34px;opacity:.3;margin-bottom:12px">♠</div>
       <div style="font-weight:600;font-size:16px;margin-bottom:6px">${state === "completed" ? "Game completed" : state === "running" ? "Check-in is closed" : "No active game right now"}</div>
-      <div style="font-size:14px">${state === "running" ? "Ask the host if you need to join this game." : "Check back when the host opens the next game."}</div>
+      <div style="font-size:14px">${state === "running" ? "Ask the host if you need to join this game." : "See the upcoming games below. Check-in opens when the host starts the game."}</div>
     </div>`;
   } else {
     inner += `
@@ -92,7 +119,9 @@ export function renderGamePage() {
       </div>`;
   }
 
-  inner += buildPlistHTML(tonight, false);
+  if (state === "completed") {
+    inner += `<div class="plist"><div class="plist-hdr"><div class="plist-title">Recorded results</div></div>${results === null ? "<p>Historical attendance is unavailable for this game.</p>" : results.length ? `<table class="rt"><thead><tr><th>Player</th><th>Finish</th><th>Points</th></tr></thead><tbody>${results.map((result) => `<tr><td>${esc(result.name || getPlayers()[result.key]?.dn || result.key)}</td><td>${Number.isInteger(result.pos) ? result.pos : "Participation"}</td><td>${result.pts}</td></tr>`).join("")}</tbody></table>` : "<p>No results were recorded for this game.</p>"}</div>`;
+  } else inner += buildPlistHTML(tonight, false);
   renderMarkup(card, inner, `pub:${getActiveGameId()}`);
 
   // render clock after DOM injection

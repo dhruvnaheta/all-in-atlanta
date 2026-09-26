@@ -2154,3 +2154,32 @@ button[data-click][aria-busy="true"]::after {
   .account-table-wrap .rt td { font-size: 13px; }
   .account-table-wrap .pts-pill { padding: 3px 7px; }
 }
+
+/* Navigation links retain the existing button presentation. */
+a[data-click] { text-decoration: none; }
+.nav-logo, .fcol a { color: inherit; }
+
+/* Searchable player list and compact phone navigation. */
+#accountPlayerKey { padding: 4px; }
+#accountPlayerKey option { padding: 10px 8px; white-space: normal; }
+.account-name-confirm { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0; font-size: 14px; }
+.account-name-confirm input { margin-top: 3px; }
+.mobile-more { position: absolute; bottom: 100%; left: 0; right: 0; padding: 12px; background: var(--felt); border-top: 1px solid var(--gold); box-shadow: 0 -6px 20px #0003; }
+.mobile-more:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mobile-more a { min-height: 48px; padding: 10px; border: 1px solid #ffffff30; border-radius: 6px; background: transparent; color: white; font: inherit; cursor: pointer; }
+.mobile-more a.active { color: var(--gold-l); border-color: var(--gold); }
+.mob-tab:focus-visible, .mobile-more a:focus-visible { outline: 2px solid var(--gold); outline-offset: -3px; }
+@media (max-width: 680px) {
+  .nav-inner { height: 56px; padding: 0 12px; }
+  .nav-logo { padding: 0; margin-right: 8px; gap: 8px; min-width: 0; flex-shrink: 1; }
+  .nav-logo img { width: 34px !important; height: 34px !important; }
+  .nav-logo .logo-sub { display: none; }
+  .logo-text { font-size: 18px; }
+  .nav-account-btn { min-height: 44px; padding: 8px 10px; flex-shrink: 0; }
+  .mob-tabs-inner { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; }
+  .mob-tab { min-width: 0; width: 100%; min-height: 56px; font-size: 11px; padding: 6px 2px; }
+  .toast { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+  footer { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
+
+.mobile-more a { display: flex; align-items: center; text-decoration: none; }

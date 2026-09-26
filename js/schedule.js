@@ -29,3 +29,12 @@ export function fmtDate(d) {
     year: "numeric",
   });
 }
+
+export const WEEKLY_GAMES = [
+  { day: 1, venue: "Wicked Wolf", time: "8:00 PM" },
+  { day: 3, venue: "5 Paces", time: "8:00 PM" },
+  { day: 4, venue: "Wicked Wolf", time: "8:00 PM" },
+];
+export function venueLabel(venue) {
+  return /^5\s*paces$/i.test(venue) ? "5 Paces" : venue;
+}

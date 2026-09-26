@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>
-      All In Atlanta — Free Poker League | Every Thursday in Atlanta, GA
+      All In Atlanta — Free Poker League | 3 Weekly Games in Atlanta, GA
     </title>
     <!-- Primary SEO -->
     <meta
       name="description"
-      content="All In Atlanta is a free Texas Hold'em poker league in Atlanta, GA. Play every Thursday night at Wicked Wolf. No buy-in, real competition, live leaderboard. Join Atlanta's best free poker night."
+      content="All In Atlanta is a free Texas Hold'em poker league in Atlanta, GA. Play Mondays and Thursdays at Wicked Wolf and Wednesdays at 5 Paces, all at 8PM. No buy-in, real competition, live leaderboard. Join Atlanta's best free poker night."
     />
     <meta
       name="keywords"
@@ -26,11 +26,11 @@
     <meta property="og:site_name" content="All In Atlanta Poker League" />
     <meta
       property="og:title"
-      content="All In Atlanta — Free Poker League | Every Thursday in Atlanta"
+      content="All In Atlanta — Free Poker League | 3 Weekly Games in Atlanta"
     />
     <meta
       property="og:description"
-      content="Free Texas Hold'em poker every Thursday at Wicked Wolf in Atlanta. No buy-in, live points leaderboard, weekly games. Atlanta's best free poker night."
+      content="Free Texas Hold'em poker Mondays and Thursdays at Wicked Wolf and Wednesdays at 5 Paces in Atlanta, all at 8PM. No buy-in, live points leaderboard, weekly games. Atlanta's best free poker night."
     />
     <meta property="og:image" content="https://allinatlanta.com/preview.png" />
     <meta property="og:image:width" content="1200" />
@@ -44,7 +44,7 @@
     />
     <meta
       name="twitter:description"
-      content="Free Texas Hold'em every Thursday at Wicked Wolf, Atlanta. Track points, climb the leaderboard. No buy-in."
+      content="Free Texas Hold'em Mondays and Thursdays at Wicked Wolf and Wednesdays at 5 Paces, Atlanta, all at 8PM. Track points, climb the leaderboard. No buy-in."
     />
     <meta name="twitter:image" content="https://allinatlanta.com/preview.png" />
     <!-- Schema.org structured data -->
@@ -54,29 +54,10 @@
         "@type": "SportsOrganization",
         "name": "All In Atlanta Poker League",
         "url": "https://allinatlanta.com",
-        "description": "Free Texas Hold'em poker league in Atlanta, GA. Weekly games every Thursday at Wicked Wolf.",
+        "description": "Free Texas Hold'em poker league in Atlanta, GA. Weekly games Mondays and Thursdays at Wicked Wolf and Wednesdays at 5 Paces, all at 8PM.",
         "sport": "Poker",
-        "location": {
-          "@type": "Place",
-          "name": "Wicked Wolf",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Atlanta",
-            "addressRegion": "GA",
-            "addressCountry": "US"
-          }
-        },
-        "event": {
-          "@type": "RecurringEvent",
-          "name": "All In Atlanta Weekly Poker Night",
-          "description": "Free Texas Hold'em poker tournament. No buy-in required.",
-          "startDate": "2024-01-01",
-          "eventSchedule": {
-            "@type": "Schedule",
-            "byDay": "https://schema.org/Thursday",
-            "startTime": "20:00"
-          },
-          "location": {
+        "location": [
+          {
             "@type": "Place",
             "name": "Wicked Wolf",
             "address": {
@@ -86,13 +67,100 @@
               "addressCountry": "US"
             }
           },
-          "isAccessibleForFree": true,
-          "organizer": {
-            "@type": "Organization",
-            "name": "All In Atlanta Poker League",
-            "url": "https://allinatlanta.com"
+          {
+            "@type": "Place",
+            "name": "5 Paces",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Atlanta",
+              "addressRegion": "GA",
+              "addressCountry": "US"
+            }
           }
-        }
+        ],
+        "event": [
+          {
+            "@type": "RecurringEvent",
+            "name": "All In Atlanta Monday Poker Night",
+            "description": "Free Texas Hold'em poker tournament. No buy-in required.",
+            "eventSchedule": {
+              "@type": "Schedule",
+              "byDay": "https://schema.org/Monday",
+              "startTime": "20:00",
+              "scheduleTimezone": "America/New_York"
+            },
+            "location": {
+              "@type": "Place",
+              "name": "Wicked Wolf",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Atlanta",
+                "addressRegion": "GA",
+                "addressCountry": "US"
+              }
+            },
+            "isAccessibleForFree": true,
+            "organizer": {
+              "@type": "Organization",
+              "name": "All In Atlanta Poker League",
+              "url": "https://allinatlanta.com"
+            }
+          },
+          {
+            "@type": "RecurringEvent",
+            "name": "All In Atlanta Wednesday Poker Night",
+            "description": "Free Texas Hold'em poker tournament. No buy-in required.",
+            "eventSchedule": {
+              "@type": "Schedule",
+              "byDay": "https://schema.org/Wednesday",
+              "startTime": "20:00",
+              "scheduleTimezone": "America/New_York"
+            },
+            "location": {
+              "@type": "Place",
+              "name": "5 Paces",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Atlanta",
+                "addressRegion": "GA",
+                "addressCountry": "US"
+              }
+            },
+            "isAccessibleForFree": true,
+            "organizer": {
+              "@type": "Organization",
+              "name": "All In Atlanta Poker League",
+              "url": "https://allinatlanta.com"
+            }
+          },
+          {
+            "@type": "RecurringEvent",
+            "name": "All In Atlanta Thursday Poker Night",
+            "description": "Free Texas Hold'em poker tournament. No buy-in required.",
+            "eventSchedule": {
+              "@type": "Schedule",
+              "byDay": "https://schema.org/Thursday",
+              "startTime": "20:00",
+              "scheduleTimezone": "America/New_York"
+            },
+            "location": {
+              "@type": "Place",
+              "name": "Wicked Wolf",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Atlanta",
+                "addressRegion": "GA",
+                "addressCountry": "US"
+              }
+            },
+            "isAccessibleForFree": true,
+            "organizer": {
+              "@type": "Organization",
+              "name": "All In Atlanta Poker League",
+              "url": "https://allinatlanta.com"
+            }
+          }
+        ]
       }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -100,7 +168,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <!-- ADMIN OVERLAY -->
@@ -119,9 +187,9 @@
     <!-- NAV -->
     <nav>
       <div class="nav-inner">
-        <div class="nav-logo" data-click="go" data-arg0="home">
+        <a href="/" class="nav-logo" data-click="go" data-arg0="home">
           <img
-            src="assets/logo.png"
+            src="/assets/logo.png"
             alt="All In Atlanta"
             style="
               height: 48px;
@@ -133,57 +201,64 @@
           <div class="logo-text">
             All In Atlanta<span class="logo-sub">Poker League</span>
           </div>
-        </div>
+        </a>
         <div class="nav-links">
-          <button
+          <a
+            href="/"
             class="nav-link active"
             data-click="go"
             data-arg0="home"
             id="nav-home"
           >
             Home
-          </button>
-          <button
+          </a>
+          <a
+            href="/about/"
             class="nav-link"
             data-click="go"
             data-arg0="about"
             id="nav-about"
           >
             About
-          </button>
-          <button
+          </a>
+          <a
+            href="/rankings/"
             class="nav-link"
             data-click="go"
             data-arg0="rankings"
             id="nav-rankings"
           >
             Rankings
-          </button>
-          <button
+          </a>
+          <a
+            href="/games/"
             class="nav-link"
             data-click="go"
             data-arg0="games"
             id="nav-games"
           >
             Active Games
-          </button>
-          <button
+          </a>
+          <a
+            href="/rules/"
             class="nav-link"
             data-click="go"
             data-arg0="rules"
             id="nav-rules"
           >
-            Rules
-          </button>
-          <button
+            League Rules
+          </a>
+          <a
+            href="/restrictions/"
             class="nav-link"
             data-click="go"
             data-arg0="restrictions"
             id="nav-restrictions"
           >
-            Tournament Rules &amp; Restrictions
-          </button>
-          <button
+            Eligibility &amp; Promotions
+          </a>
+          <a
+            href="/tv/"
             class="nav-link"
             data-click="go"
             data-arg0="tv"
@@ -191,58 +266,87 @@
             style="color: var(--gold-l)"
           >
             📺 Timer
-          </button>
+          </a>
         </div>
-        <button class="nav-account-btn" id="nav-account" data-click="openAccount">Log In</button>
+        <a
+          href="/account/"
+          class="nav-account-btn"
+          id="nav-account"
+          data-click="openAccount"
+          >Log In</a
+        >
       </div>
     </nav>
 
     <!-- Mobile bottom tab bar -->
-    <div class="mob-tabs" id="mobTabs">
+    <div
+      class="mob-tabs"
+      id="mobTabs"
+      role="navigation"
+      aria-label="Mobile navigation"
+    >
+      <div id="mobileMore" class="mobile-more" hidden>
+        <a href="/account/" id="mobt-account" data-click="openAccount"
+          ><span id="mobileAccountLabel">Log In</span></a
+        >
+        <a href="/about/" id="mobt-about" data-click="go" data-arg0="about"
+          >About</a
+        >
+        <a href="/rules/" id="mobt-rules" data-click="go" data-arg0="rules"
+          >League Rules</a
+        >
+        <a
+          href="/restrictions/"
+          id="mobt-restrictions"
+          data-click="go"
+          data-arg0="restrictions"
+          >Eligibility &amp; Promotions</a
+        >
+      </div>
       <div class="mob-tabs-inner">
-        <button
+        <a
+          href="/"
           class="mob-tab active"
           id="mobt-home"
           data-click="go"
           data-arg0="home"
         >
           <span class="tab-icon">🏠</span>Home
-        </button>
-        <button
+        </a>
+        <a
+          href="/rankings/"
           class="mob-tab"
           id="mobt-rankings"
           data-click="go"
           data-arg0="rankings"
         >
           <span class="tab-icon">🏆</span>Rankings
-        </button>
-        <button
+        </a>
+        <a
+          href="/games/"
           class="mob-tab"
           id="mobt-games"
           data-click="go"
           data-arg0="games"
         >
           <span class="tab-icon">♠️</span>Games
-        </button>
-        <button class="mob-tab" id="mobt-account" data-click="openAccount"><span class="tab-icon" aria-hidden="true">♦</span><span id="mobileAccountLabel">Log In</span></button>
+        </a>
+        <a
+          href="/tv/"
+          class="mob-tab"
+          id="mobt-tv"
+          data-click="go"
+          data-arg0="tv"
+          ><span class="tab-icon" aria-hidden="true">📺</span>Timer</a
+        >
         <button
           class="mob-tab"
-          id="mobt-rules"
-          data-click="go"
-          data-arg0="rules"
+          id="mobt-more"
+          data-click="toggleMobileMenu"
+          aria-expanded="false"
+          aria-controls="mobileMore"
         >
-          <span class="tab-icon">📋</span>Rules
-        </button>
-        <button
-          class="mob-tab"
-          id="mobt-restrictions"
-          data-click="go"
-          data-arg0="restrictions"
-        >
-          <span class="tab-icon">⚖️</span>Restrictions
-        </button>
-        <button class="mob-tab" id="mobt-tv" data-click="go" data-arg0="tv">
-          <span class="tab-icon">📺</span>Timer
+          <span class="tab-icon" aria-hidden="true">☰</span>More
         </button>
       </div>
     </div>
@@ -253,7 +357,7 @@
         <div class="home-hero-inner">
           <img
             class="home-hero-logo"
-            src="assets/logo.png"
+            src="/assets/logo.png"
             id="homeHeroLogo"
             alt="All In Atlanta Poker League"
           />
@@ -261,16 +365,23 @@
           <h1>All In <span class="gold">Atlanta</span></h1>
           <p class="home-hero-copy">Atlanta's free-to-play poker league.</p>
           <div class="home-hero-actions">
-            <button class="btn btn-gold" data-click="go" data-arg0="games">
-              Register for Tonight
-            </button>
-            <button
+            <a
+              href="/games/"
+              id="homeGameAction"
+              class="btn btn-gold"
+              data-click="go"
+              data-arg0="games"
+            >
+              View Game Schedule
+            </a>
+            <a
+              href="/rankings/"
               class="btn home-hero-outline"
               data-click="go"
               data-arg0="rankings"
             >
               View Rankings
-            </button>
+            </a>
           </div>
         </div>
       </section>
@@ -285,8 +396,8 @@
             <div class="stat-l">Games Played</div>
           </div>
           <div class="stat-cell">
-            <div class="stat-n">3</div>
-            <div class="stat-l">Games</div>
+            <div class="stat-n" id="s-weekly">3</div>
+            <div class="stat-l">Games per Week</div>
           </div>
           <div class="stat-cell">
             <div class="stat-n" id="s-tonight">0</div>
@@ -298,9 +409,21 @@
         <div class="section">
           <div class="sec-tag">Schedule</div>
           <div class="sec-title" style="margin-bottom: 22px">
-            Weekly <span>Game</span>
+            Weekly <span>Games</span>
           </div>
           <div class="sched-grid" id="schedGrid">
+            <div class="sched-card">
+              <div class="sched-day">Every Monday</div>
+              <div class="sched-venue">Wicked Wolf</div>
+              <div class="sched-time">8:00 PM</div>
+              <span class="badge badge-pts">Points Game</span>
+            </div>
+            <div class="sched-card">
+              <div class="sched-day">Every Wednesday</div>
+              <div class="sched-venue">5 Paces</div>
+              <div class="sched-time">8:00 PM</div>
+              <span class="badge badge-pts">Points Game</span>
+            </div>
             <div class="sched-card">
               <div class="sched-day">Every Thursday</div>
               <div class="sched-venue">Wicked Wolf</div>
@@ -321,16 +444,17 @@
             "
           >
             <div>
-              <div class="sec-tag">Leaderboard</div>
+              <div class="sec-tag">Monthly Leaderboard</div>
               <div class="sec-title">Top <span>Players</span></div>
             </div>
-            <button
+            <a
+              href="/rankings/"
               class="btn btn-green-sm"
               data-click="go"
               data-arg0="rankings"
             >
               Full Rankings →
-            </button>
+            </a>
           </div>
           <div
             class="card"
@@ -389,7 +513,8 @@
                 No buy-ins, no entry fees. Just register on the Active Games
                 page when check-in opens, show up, and play. Earn points for
                 every finish, climb the monthly leaderboard, and compete for
-                prizes at the end of each quarter.
+                prizes in separate quarterly championships. Qualification
+                details are announced before each championship.
               </p>
               <p
                 style="font-size: 14px; line-height: 1.75; color: var(--muted)"
@@ -537,7 +662,8 @@
                       Win prizes
                     </div>
                     <div style="font-size: 12px; color: var(--muted)">
-                      Top quarterly players compete in a championship
+                      Quarterly championships · qualification details announced
+                      before each event
                     </div>
                   </div>
                 </div>
@@ -625,8 +751,23 @@
       </div>
       <div class="container">
         <div class="section">
-          <div id="seriesFilterWrap" style="display: none"></div>
-          <div id="monthly-rankings" style="display: none"></div>
+          <div id="seriesFilterWrap"></div>
+          <h2>Monthly standings</h2>
+          <p>
+            Points from the current calendar month in Atlanta. A new leaderboard
+            starts each month; past results are preserved.
+          </p>
+          <p>
+            Ties are broken by the number of 1st-place finishes, then 2nd, and
+            so on within the selected period and series. Players still tied
+            share a rank; the next rank skips those places (1, 1, 3).
+          </p>
+          <div
+            id="monthly-rankings"
+            class="card"
+            style="padding: 0; overflow: hidden"
+          ></div>
+          <h2 style="margin-top: 28px">All-time standings</h2>
           <div
             style="font-size: 13px; color: var(--muted); margin-bottom: 14px"
           >
@@ -643,11 +784,20 @@
 
     <!-- PERSONAL ACCOUNT -->
     <div class="page" id="page-account">
-      <div class="ph"><div class="ph-inner account-heading">
-        <div><div class="sec-tag account-eyebrow">All In Atlanta · Your player page</div><h1 id="accountTitle">My Stats</h1></div>
-        <div class="account-actions" id="accountHeadingActions"></div>
-      </div></div>
-      <div class="container"><div class="section" id="accountContent"></div></div>
+      <div class="ph">
+        <div class="ph-inner account-heading">
+          <div>
+            <div class="sec-tag account-eyebrow">
+              All In Atlanta · Your player page
+            </div>
+            <h1 id="accountTitle">My Stats</h1>
+          </div>
+          <div class="account-actions" id="accountHeadingActions"></div>
+        </div>
+      </div>
+      <div class="container">
+        <div class="section" id="accountContent"></div>
+      </div>
     </div>
 
     <!-- ACTIVE GAMES -->
@@ -688,6 +838,12 @@
       <div class="container">
         <div class="section">
           <div class="game-status-card" id="gameStatusCard"></div>
+          <h2 style="margin-top: 28px">Upcoming games</h2>
+          <p>
+            All times are Atlanta time. Check-in opens when the host starts the
+            game.
+          </p>
+          <div id="upcomingGames" class="sched-grid"></div>
         </div>
       </div>
     </div>
@@ -708,20 +864,21 @@
               line-height: 1;
             "
           >
-            Tournament Rules
+            League Rules
           </h1>
         </div>
       </div>
       <div class="container">
         <div class="section">
           <div style="margin-bottom: 18px">
-            <button
+            <a
+              href="/restrictions/"
               class="btn btn-gold-sm"
               data-click="go"
               data-arg0="restrictions"
             >
-              View Tournament Rules &amp; Restrictions →
-            </button>
+              View Eligibility &amp; Promotions →
+            </a>
           </div>
           <div class="rules-nav">
             <button
@@ -834,8 +991,11 @@
                   than any player who did not.
                 </li>
                 <li>
-                  Points accumulate monthly and reset at the start of each new
-                  month.
+                  Monthly standings start fresh on the first of each month in
+                  Atlanta. All-time standings preserve points across every
+                  month. Quarterly championships are separate events;
+                  qualification details will be announced before each
+                  championship.
                 </li>
               </ul>
             </div>
@@ -844,7 +1004,8 @@
               <ul class="rlist">
                 <li>
                   Ranking ties broken by 1st place finishes, then 2nd, and so
-                  on.
+                  on, within the selected period and series. Exact ties share a
+                  rank (1, 1, 3).
                 </li>
               </ul>
             </div>
@@ -890,7 +1051,7 @@
       </div>
     </div>
 
-    <!-- TOURNAMENT RULES & RESTRICTIONS -->
+    <!-- ELIGIBILITY & PROMOTIONS -->
     <div class="page" id="page-restrictions">
       <div class="ph">
         <div class="ph-inner">
@@ -906,7 +1067,7 @@
               line-height: 1;
             "
           >
-            Tournament Rules &amp; Restrictions
+            Eligibility &amp; Promotions
           </h1>
         </div>
       </div>
@@ -1257,13 +1418,31 @@
           <div class="fcol">
             <h4>Navigate</h4>
             <ul>
-              <li data-click="go" data-arg0="home">Home</li>
-              <li data-click="go" data-arg0="about">About</li>
-              <li data-click="go" data-arg0="rankings">Rankings</li>
-              <li data-click="go" data-arg0="games">Active Games</li>
-              <li data-click="go" data-arg0="rules">Rules</li>
-              <li data-click="go" data-arg0="restrictions">
-                Tournament Rules &amp; Restrictions
+              <li><a href="/" data-click="go" data-arg0="home">Home</a></li>
+              <li>
+                <a href="/about/" data-click="go" data-arg0="about">About</a>
+              </li>
+              <li>
+                <a href="/rankings/" data-click="go" data-arg0="rankings"
+                  >Rankings</a
+                >
+              </li>
+              <li>
+                <a href="/games/" data-click="go" data-arg0="games"
+                  >Active Games</a
+                >
+              </li>
+              <li>
+                <a href="/rules/" data-click="go" data-arg0="rules">League Rules</a>
+              </li>
+              <li>
+                <a
+                  href="/restrictions/"
+                  data-click="go"
+                  data-arg0="restrictions"
+                >
+                  Eligibility &amp; Promotions
+                </a>
               </li>
             </ul>
           </div>
@@ -1286,6 +1465,6 @@
       </div>
     </footer>
 
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="/js/main.js"></script>
   </body>
 </html>

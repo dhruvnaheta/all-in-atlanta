@@ -159,6 +159,7 @@ test("personal page fits mobile and clears failed sign-in state", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#mobt-more").click();
   await page.locator("#mobt-account").click();
   await page.locator("#accountEmail").fill("alice@example.test");
   await page.locator("#accountPassword").fill("bad-password");
@@ -198,3 +199,76 @@ test("admin signing in through My Stats opens admin view and can return to perso
   await page.locator("#nav-account").click();
   await expect(page.locator("#adminOverlay")).toHaveClass(/open/);
 });
+
+test("profile search narrows a large roster and guards similar new names", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    const players = { ...LS.get("players") };
+    for (let i = 0; i < 231; i++)
+      players[`player${i}`] = { key: `player${i}`, dn: `Player ${i}` };
+    for (const dn of ["Corey T", "COREY T 1", "Cor try", "burt", "burt peters"])
+      players[dn.toLowerCase()] = { key: dn.toLowerCase(), dn };
+    LS.applyRemote("players", players);
+  });
+  await page.locator("#nav-account").click();
+  await page.getByRole("button", { name: "Continue with Google" }).click();
+  await page.getByLabel("Search existing profiles").fill("COREY");
+  await expect(page.locator("#accountPlayerKey option")).toHaveCount(3);
+  await page.locator("#accountPlayerKey").selectOption("corey t");
+  await page.getByLabel("Search existing profiles").fill("nobody matches");
+  await expect(page.locator("#accountPlayerKey")).toHaveValue("");
+  await expect(page.locator("#accountSearchCount")).toContainText(
+    "No profiles found",
+  );
+  await page
+    .getByLabel("New player name", { exact: true })
+    .fill("  COREY   T  ");
+  await page.locator('#accountLinkForm button[type="submit"]').click();
+  await expect(page.locator("#toast")).toContainText(
+    "That name already has a profile",
+  );
+  await page.getByLabel("New player name", { exact: true }).fill("Burt P");
+  await expect(page.locator("#accountNameMatches")).toContainText(
+    "burt peters",
+  );
+  await page.locator('#accountLinkForm button[type="submit"]').click();
+  await expect(page.locator("#toast")).toContainText(
+    "Review the similar profiles",
+  );
+  await page.getByLabel("New player name", { exact: true }).fill("");
+  await page.getByLabel("Search existing profiles").fill("cor");
+  await expect(page.locator("#accountPlayerKey option")).toHaveCount(4);
+  await page.locator("#accountPlayerKey").selectOption("corey t");
+  await page.locator('#accountLinkForm button[type="submit"]').click();
+  await expect(page.locator("#accountContent")).toContainText(
+    "Profile request sent",
+  );
+});
+
+for (const width of [320, 390]) {
+  test(`phone navigation fits at ${width}px and includes About`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 640 });
+    const bounds = await page.locator("#mobt-tv").boundingBox();
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    const header = await page.locator("body > nav").boundingBox();
+    const tabs = await page.locator("#mobTabs").boundingBox();
+    expect(header.height + tabs.height).toBeLessThan(125);
+    await page.locator("#mobt-more").click();
+    await expect(page.locator("#mobt-more")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await page.locator("#mobt-about").click();
+    await expect(page.locator("#page-about")).toBeVisible();
+    await expect(page.locator("#mobileMore")).toBeHidden();
+    await page.locator("#mobt-more").click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#mobt-more")).toBeFocused();
+    await page.locator("#mobt-tv").click();
+    await expect(page.locator("#page-tv")).toBeVisible();
+  });
+}

@@ -43,7 +43,7 @@ export async function initializeFirebase() {
         id: "g_test",
         seriesId: "s_wickedwolf",
         name: "Thursday Test",
-        date: "Sep 24, 2026",
+        date: atlantaDateKey(),
         status: "running",
         registrationOpen: true,
       },

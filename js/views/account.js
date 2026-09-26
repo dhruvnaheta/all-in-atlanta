@@ -1,3 +1,8 @@
+import {
+  searchPlayers,
+  similarPlayers,
+  normalizePlayerName,
+} from "../player-search.js";
 import { atlantaDateKey, leagueDateKey } from "../league-date.js";
 import { parseLeagueDate } from "../scoring.js";
 import {
@@ -56,21 +61,54 @@ function signedOut() {
 }
 function onboarding(user, account) {
   if (!user.emailVerified)
-    return `<section class="card account-panel"><h2>Verify your email</h2><p>We sent a verification link to <strong>${esc(user.email)}</strong>. Verify your email to connect your player profile.</p><div class="account-actions"><button class="btn btn-green" data-click="accountRefreshUser">I’ve verified my email</button><button class="btn btn-ghost" data-click="accountVerifyEmail">Resend email</button></div></section>`;
+    return `<section class="card account-panel"><h2>Verify your email</h2><p>We sent a verification link to <strong>${esc(user.email)}</strong>. Verify your email to connect your player profile.</p><p>Can’t find it? Check your spam folder and mark the email as “Not spam.”</p><div class="account-actions"><button class="btn btn-green" data-click="accountRefreshUser">I’ve verified my email</button><button class="btn btn-ghost" data-click="accountVerifyEmail">Resend email</button></div></section>`;
   if (account?.status === "pending")
     return `<section class="card account-panel"><span class="personal-label">Profile request sent</span><h2>You’re almost in, ${esc(account.requestedName)}.</h2><p>An admin will confirm your player profile. Your stats will appear here as soon as it’s approved.</p></section>`;
   const selectedKey = document.getElementById("accountPlayerKey")?.value || "";
   const newName = document.getElementById("accountNewName")?.value || "";
-  const options = Object.values(getPlayers()).sort((a, b) =>
-    (a.dn || a.key).localeCompare(b.dn || b.key),
-  );
+  const query = document.getElementById("accountPlayerSearch")?.value || "";
+  const options = searchPlayers(getPlayers(), query);
   return `<section class="card account-panel"><h2>Connect your player profile</h2><p>Choose the name you play under. An admin will confirm the match so your results stay with you.</p>${account?.status === "rejected" ? '<p class="account-message">Your previous request wasn’t approved. Check with an admin or choose the correct profile below.</p>' : ""}
     <form id="accountLinkForm" data-submit="accountRequestLink">
-      <label class="account-field" for="accountPlayerKey">Existing player<select id="accountPlayerKey"><option value="">Choose your player profile</option>${options.map((p) => `<option value="${esc(p.key)}"${p.key === selectedKey ? " selected" : ""}>${esc(p.dn)}</option>`).join("")}</select></label>
+      ${field("accountPlayerSearch", "Search existing profiles", query, "search", 'autocomplete="off" data-input="accountSearchProfiles" aria-controls="accountPlayerKey"')}
+      <p id="accountSearchCount" class="account-muted" role="status">${options.length} profiles found</p>
+      <label class="account-field" for="accountPlayerKey">Existing player<select id="accountPlayerKey" size="5" aria-describedby="accountProfileHelp">${profileOptions(options, selectedKey)}</select></label>
+      <p id="accountProfileHelp" class="account-muted">Choose your usual profile to keep your points together. If several names are yours, ask an admin to review them before requesting a new profile.</p>
       <p class="account-muted">New to the league? Leave the selection empty and enter your player name.</p>
-      ${field("accountNewName", "New player name", newName, "text", 'autocomplete="name" maxlength="120"')}
+      ${field("accountNewName", "New player name", newName, "text", 'autocomplete="name" maxlength="120" data-input="accountNewName"')}
+      <div id="accountNameMatches" data-preserve aria-live="polite"></div>
       <button class="btn btn-green" type="submit">Request profile approval</button>
     </form></section>`;
+}
+function profileOptions(players, selectedKey = "") {
+  return (
+    `<option value=""${selectedKey ? "" : " selected"}>Choose your player profile</option>` +
+    players
+      .map(
+        (p) =>
+          `<option value="${esc(p.key)}"${p.key === selectedKey ? " selected" : ""}>${esc(p.dn || p.key)} · ${Number(p.total) || 0} pts · ${Number(p.games) || 0} games</option>`,
+      )
+      .join("")
+  );
+}
+export function searchAccountProfiles() {
+  const query = document.getElementById("accountPlayerSearch").value;
+  const options = searchPlayers(getPlayers(), query);
+  const select = document.getElementById("accountPlayerKey");
+  select.innerHTML = profileOptions(
+    options,
+    options.some((p) => p.key === select.value) ? select.value : "",
+  );
+  document.getElementById("accountSearchCount").textContent = options.length
+    ? `${options.length} profiles found`
+    : "No profiles found. Try a shorter name or another spelling.";
+}
+export function checkAccountName() {
+  const name = document.getElementById("accountNewName").value.trim();
+  const matches = similarPlayers(getPlayers(), name);
+  document.getElementById("accountNameMatches").innerHTML = matches.length
+    ? `<p class="account-muted">Similar profiles: ${matches.map((p) => esc(p.dn)).join(", ")}. Search above to select yours. If more than one is yours, ask an admin to review your results.</p><label class="account-name-confirm"><input id="accountDistinctPlayer" type="checkbox">I’m a different player from these existing profiles.</label>`
+    : "";
 }
 function gameCard(key) {
   const active = getActiveGame(),
@@ -87,11 +125,11 @@ function gameCard(key) {
             leagueDateKey(a.date).localeCompare(leagueDateKey(b.date)),
           )[0];
   if (!game)
-    return `<section class="card account-panel"><div class="personal-label">Next game</div><h2>See you at the table</h2><p>Check the league schedule for upcoming games.</p><button class="btn btn-ghost" data-click="go" data-arg0="games">View games</button></section>`;
+    return `<section class="card account-panel"><div class="personal-label">Next game</div><h2>See you at the table</h2><p>Check the league schedule for upcoming games.</p><a href="/games/" class="btn btn-ghost" data-click="go" data-arg0="games">View games</a></section>`;
   const league = series.find((s) => s.id === game.seriesId);
   const checked =
     game.id === active?.id && _getTonight().some((p) => p.key === key);
-  return `<section class="card account-panel"><div class="personal-label">${game.status === "running" ? "Active game" : "Next game"}</div><h2>${esc(game.name)}</h2><p>${esc(formatDate(parseLeagueDate(game.date)))}${league?.time ? ` · ${esc(league.time)} ET` : ""}<br>${esc(game.venue || league?.venue || "")}</p><div class="account-actions">${checked ? '<span class="account-checked" role="status">✓ You’re checked in</span>' : game.status === "running" && game.registrationOpen ? '<button class="btn btn-green" data-click="accountCheckIn">Check me in</button>' : `<span class="account-muted">${game.status === "running" ? "Registration is closed" : "Check-in hasn’t opened yet"}</span>`}<button class="btn btn-ghost" data-click="go" data-arg0="games">View game</button></div></section>`;
+  return `<section class="card account-panel"><div class="personal-label">${game.status === "running" ? "Active game" : "Next game"}</div><h2>${esc(game.name)}</h2><p>${esc(formatDate(parseLeagueDate(game.date)))}${league?.time ? ` · ${esc(league.time)} ET` : ""}<br>${esc(game.venue || league?.venue || "")}</p><div class="account-actions">${checked ? '<span class="account-checked" role="status">✓ You’re checked in</span>' : game.status === "running" && game.registrationOpen ? '<button class="btn btn-green" data-click="accountCheckIn">Check me in</button>' : `<span class="account-muted">${game.status === "running" ? "Registration is closed" : "Check-in hasn’t opened yet"}</span>`}<a href="/games/" class="btn btn-ghost" data-click="go" data-arg0="games">View game</a></div></section>`;
 }
 function dashboard(key) {
   const players = getPlayers();
@@ -111,7 +149,7 @@ function dashboard(key) {
     ${metric("Monthly rank", rank(monthly.rank), `${monthly.points} points`)}
     ${metric("All-time rank", rank(allTime.rank), `${allTime.points} points`)}
     ${metric("Games played", stats.games)}${metric("Best finish", stats.best ? `#${stats.best}` : "—")}
-    </section><p class="account-muted personal-gap">${allTime.gap ? `${allTime.gap} points to tie the next all-time position.` : allTime.rank ? "You’re at the top of the all-time standings." : "Play a game to get on the board."} Equal point totals share a rank.</p>
+    </section><p class="account-muted personal-gap">${allTime.gap ? `${allTime.gap} points to match the next higher all-time point total.` : allTime.rank === 1 ? "You’re at the top of the all-time standings." : allTime.rank ? "Finish counts determine your position among players with equal points." : "Play a game to get on the board."} Ties are broken by 1st-place finishes, then 2nd, and so on. Exact ties share a rank.</p>
     <div class="personal-columns"><section class="card account-panel"><div class="personal-label">Five-game streak</div><h2>${streak}<span class="account-muted"> / 5 games</span></h2><div class="streak-track" aria-label="${streak} of 5 games">${Array.from({ length: 5 }, (_, i) => `<span class="${i < streak ? "filled" : ""}">${i + 1}</span>`).join("")}</div><p>${complete ? "5,000 bonus chips eligible — ask an admin to confirm your award." : expired ? "Start a new streak at your next game." : streak ? "Keep attending consecutive league games to earn 5,000 bonus chips." : "Attend five consecutive league games to earn 5,000 bonus chips."}</p>${next && !expired ? `<p class="account-muted">${streak === 5 ? "Start your next cycle" : "Keep your streak going"}: ${esc(formatDate(next))}.</p>` : ""}<p class="account-muted">Chips are awarded by an admin.</p></section>${gameCard(key)}</div>
     <section class="card account-panel"><div class="account-section-heading"><h2>Recent results</h2><span class="account-muted">From recorded results</span></div>
       ${
@@ -257,6 +295,27 @@ export async function requestAccountLink() {
   const newName = document.getElementById("accountNewName").value.trim();
   if (!!playerKey === !!newName)
     throw new Error("Choose an existing profile or enter a new player name.");
+  if (newName) {
+    const matches = similarPlayers(getPlayers(), newName);
+    if (
+      matches.some(
+        (p) =>
+          normalizePlayerName(p.dn || p.key) === normalizePlayerName(newName),
+      )
+    )
+      throw new Error(
+        "That name already has a profile. Search for it above or ask an admin for help.",
+      );
+    if (
+      matches.length &&
+      !document.getElementById("accountDistinctPlayer")?.checked
+    ) {
+      checkAccountName();
+      throw new Error(
+        "Review the similar profiles before requesting a new one.",
+      );
+    }
+  }
   await accountCommand({ action: "requestLink", playerKey, newName });
   toast("Profile request sent to the admins.");
 }
@@ -296,7 +355,26 @@ export async function accountRefreshUser() {
 }
 export function accountRequestMarkup() {
   const { requests } = getAccountState();
-  return `<div class="asec" id="accountApprovalSection"><div class="asec-title">Player Account Requests${requests.length ? ` (${requests.length})` : ""}</div><p class="account-muted">Confirm each person’s identity before connecting their results.</p>${requests.length ? requests.map((r) => `<div class="account-request"><div><strong>${esc(r.requestedName)}</strong><div class="account-muted">${esc(r.email)} · ${r.newPlayer ? "New player" : "Existing player"}</div></div><div class="account-actions"><button class="btn btn-green-sm" data-click="adminApproveAccount" data-arg0="${esc(r.uid)}">Approve</button><button class="btn btn-ghost" data-click="adminRejectAccount" data-arg0="${esc(r.uid)}">Decline</button></div></div>`).join("") : '<p class="account-muted">No player accounts waiting for approval.</p>'}</div>`;
+  return `<div class="asec" id="accountApprovalSection"><div class="asec-title">Player Account Requests${requests.length ? ` (${requests.length})` : ""}</div><p class="account-muted">Confirm each person’s identity before connecting their results.</p>${
+    requests.length
+      ? requests
+          .map(
+            (r) =>
+              `<div class="account-request"><div><strong>${esc(r.requestedName)}</strong><div class="account-muted">${esc(r.email)} · ${r.newPlayer ? "New player" : "Existing player"}</div>${
+                r.newPlayer &&
+                similarPlayers(getPlayers(), r.requestedName).length
+                  ? `<p class="account-muted">Check possible duplicates before approval: ${similarPlayers(
+                      getPlayers(),
+                      r.requestedName,
+                    )
+                      .map((p) => esc(p.dn))
+                      .join(", ")}</p>`
+                  : ""
+              }</div><div class="account-actions"><button class="btn btn-green-sm" data-click="adminApproveAccount" data-arg0="${esc(r.uid)}">Approve</button><button class="btn btn-ghost" data-click="adminRejectAccount" data-arg0="${esc(r.uid)}">Decline</button></div></div>`,
+          )
+          .join("")
+      : '<p class="account-muted">No player accounts waiting for approval.</p>'
+  }</div>`;
 }
 export async function reviewAccount(uid, approve) {
   await accountCommand({ action: approve ? "approveLink" : "rejectLink", uid });

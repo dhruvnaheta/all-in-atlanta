@@ -11,9 +11,13 @@ const types = {
 };
 createServer(async (request, response) => {
   try {
-    const path = decodeURIComponent(
+    let path = decodeURIComponent(
       new URL(request.url, "http://localhost").pathname,
     ).replace(/^\/$/, "/index.html");
+    if (
+      /^\/(about|rankings|games|rules|restrictions|tv|account)\/?$/.test(path)
+    )
+      path = "/index.html";
     const file = resolve(root, "." + (path === "/" ? "/index.html" : path));
     if (
       !file.startsWith(root + sep) ||

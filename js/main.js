@@ -6,6 +6,8 @@ import {
   authenticateAccount,
   authenticateWithGoogle,
   requestAccountLink,
+  searchAccountProfiles,
+  checkAccountName,
   saveAccountProfile,
   personalCheckIn,
   accountSignOut,
@@ -24,7 +26,12 @@ import { toast, closeEditPlayer } from "./dom.js";
 import { isAdmin, currentUser, subscribeAuth } from "./auth.js";
 
 import { closeAdmin, openAdmin } from "./views/admin.js";
-import { go, sR } from "./navigation.js";
+import {
+  go,
+  sR,
+  initializeNavigation,
+  toggleMobileMenu,
+} from "./navigation.js";
 import { setRankSeriesFilter } from "./views/rankings.js";
 import {
   pubSearch,
@@ -183,6 +190,9 @@ export async function jumpLevel(index) {
 }
 bindDrafts();
 export const actions = {
+  toggleMobileMenu,
+  accountSearchProfiles: () => searchAccountProfiles(),
+  accountNewName: () => checkAccountName(),
   openAccount: () => {
     closeAdmin();
     go("account");
@@ -285,6 +295,7 @@ for (const [name, handler] of Object.entries(actions)) {
 bindActions(actions);
 
 renderAll();
+initializeNavigation();
 initializeFirebase((error) =>
   toast("Live updates are unavailable. " + error.message),
 )

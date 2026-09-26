@@ -231,3 +231,141 @@ test("profile editor has no aggregate overrides or reset buttons", async ({
     ),
   ).toBe(25);
 });
+
+test("page links survive reload and browser history", async ({ page }) => {
+  for (const tab of [
+    "about",
+    "rankings",
+    "games",
+    "rules",
+    "restrictions",
+    "account",
+    "tv",
+  ]) {
+    await page.goto(`/${tab}/`);
+    await expect(page.locator(`#page-${tab}`)).toBeVisible();
+    await page.reload();
+    await expect(page.locator(`#page-${tab}`)).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      `https://allinatlanta.com/${tab}/`,
+    );
+  }
+  await page.goto("/");
+  await expect(page.locator("#nav-rankings")).toHaveAttribute(
+    "href",
+    "/rankings/",
+  );
+  await page.locator("#nav-rankings").click();
+  await expect(page).toHaveURL(/\/rankings\/$/);
+  await page.locator("#nav-rules").click();
+  await expect(page).toHaveTitle("League Rules | All In Atlanta");
+  await page.goBack();
+  await expect(page.locator("#page-rankings")).toBeVisible();
+  await page.goForward();
+  await expect(page.locator("#page-rules")).toBeVisible();
+  await expect(page.locator("#nav-rules")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+});
+
+test("empty schedule shows all weekly venues with a clear stat label", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applySnapshot({ seriesList: [] });
+    const { updateHomeSched } = await import("/js/views/home.js");
+    updateHomeSched();
+  });
+  await expect(page.locator("#schedGrid .sched-card")).toHaveCount(3);
+  await expect(page.locator("#schedGrid")).toContainText("5 Paces");
+  await expect(page.locator("#s-weekly")).toHaveText("3");
+  await expect(page.locator("#s-weekly + .stat-l")).toHaveText(
+    "Games per Week",
+  );
+});
+
+test("completed games show saved attendance and the CTA offers the full schedule", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applySnapshot({
+      seriesList: [1, 3, 4].map((day) => ({
+        id: `s${day}`,
+        day,
+        venue: day === 3 ? "5 Paces" : "Wicked Wolf",
+        name: `Night ${day}`,
+        time: "8:00 PM",
+      })),
+      gameList: [
+        {
+          id: "finished",
+          seriesId: "s4",
+          status: "completed",
+          date: "2026-09-24",
+        },
+      ],
+      activeGameId: "finished",
+      attendance: [],
+      history: [
+        {
+          gameId: "finished",
+          date: "2026-09-24",
+          results: [{ key: "alice", name: "Alice", pts: 18, pos: 2 }],
+        },
+      ],
+    });
+  });
+  await expect(page.locator("#homeGameAction")).toHaveText(
+    "View Game Schedule",
+  );
+  await page.locator("#homeGameAction").click();
+  await expect(page.locator("#upcomingGames .sched-card")).toHaveCount(3);
+  await expect(page.locator("#gameStatusCard")).toContainText(
+    "1 recorded players",
+  );
+  await expect(page.locator("#gameStatusCard")).toContainText("Alice");
+  await expect(page.locator("#pubSearchInput")).toHaveCount(0);
+});
+
+test("monthly rankings display finish tiebreakers and shared ranks", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    const { atlantaDateKey } = await import("/js/league-date.js");
+    LS.applySnapshot({
+      players: {
+        will: { dn: "Will" },
+        davis: { dn: "Davis" },
+        other: { dn: "Other" },
+      },
+      history: [
+        {
+          gameId: "tie",
+          date: atlantaDateKey(),
+          results: [
+            { key: "will", pts: 20, pos: 2 },
+            { key: "davis", pts: 20, pos: "p" },
+            { key: "other", pts: 20, pos: "p" },
+          ],
+        },
+      ],
+    });
+  });
+  await page.locator("#nav-rankings").click();
+  await expect(page.locator("#monthly-rankings")).toBeVisible();
+  await expect(page.locator("#monthly-rankings .pnm")).toHaveText([
+    "Will",
+    "Davis",
+    "Other",
+  ]);
+  await expect(page.locator("#monthly-rankings .rn")).toHaveText([
+    "1",
+    "2",
+    "2",
+  ]);
+});
