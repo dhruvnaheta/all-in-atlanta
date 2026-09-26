@@ -90,7 +90,7 @@ export function openEditPlayer(key) {
         <label>Contact email<input id="ep_email" type="email" value="${esc(p.email || "")}" style="width:100%;padding:8px"/></label>
         <label>Phone<input id="ep_phone" type="tel" value="${esc(p.phone || "")}" style="width:100%;padding:8px"/></label>
         <div id="editPlayerError" role="alert"></div>
-        <div style="font-size:12px;color:var(--muted)">Points, games, and streaks are calculated from recorded game results. Monthly points roll over automatically in Atlanta time.</div>
+        <div style="font-size:12px;color:var(--muted)">Points, games, and streaks are calculated from recorded game results. To correct a past finish or awarded points, use Edit results on the played game. Monthly points roll over automatically in Atlanta time.</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:20px">
         <button data-click="saveEditPlayer" data-arg0="${esc(key)}" style="flex:1;background:var(--green);color:#fff;border:none;border-radius:7px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;cursor:pointer">SAVE</button>

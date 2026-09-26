@@ -152,14 +152,14 @@ export function adminEditResults(id) {
     <div class="np-fields"><label class="np-field"><span class="np-label">Game name</span><input class="np-input" id="historyGameName" type="text" maxlength="160" value="${esc(record.gameName || getHistoryGameName(record))}"></label>
     <label class="np-field"><span class="np-label">Game date</span><input class="np-input" id="historyGameDate" type="date" value="${esc(leagueDateKey(record.date) || "")}"></label></div>
     <p>Correct the game details or finishing order. Date changes update monthly standings and attendance streaks.</p>
-    <p>Enter the actual finishing order. Saving replaces this game's points; attendance stays the same. Unplaced players receive 1 participation point.</p>
+    <p>Changing a finish fills in the standard points. Adjust awarded points below when needed. Saving updates standings; attendance stays the same.</p>
     ${record.results
       .map(
         (r, i) => `<label class="finish-row">
       <span style="flex:1">${esc(r.name || r.key)}</span>
       <select class="fsel" data-result-index="${i}">
         ${["p", 1, 2, 3, 4, 5, 6, 7, 8].map((pos) => `<option value="${pos}"${String(r.pos) === String(pos) ? " selected" : ""}>${pos === "p" ? "Participation" : "#" + pos} — ${ptFor(pos)} pts</option>`).join("")}
-      </select></label>`,
+      </select><input class="np-input" style="width:90px" type="number" min="0" step="1" aria-label="Points for ${esc(r.name || r.key)}" data-result-points="${i}" value="${esc(r.pts)}"></label>`,
       )
       .join("")}
     <div role="alert" data-result-error></div>
@@ -168,6 +168,7 @@ export function adminEditResults(id) {
   const selects = [...editor.querySelectorAll("[data-result-index]")];
   for (const select of selects) {
     select.addEventListener("change", () => {
+      editor.querySelector(`[data-result-points="${select.dataset.resultIndex}"]`).value = ptFor(select.value);
       const error = editor.querySelector("[data-result-error]");
       if (
         error.textContent !== "Two players share the same finishing position."
@@ -206,10 +207,18 @@ export async function adminSaveResults() {
     const date = editor.querySelector("#historyGameDate").value;
     if (!gameName) throw new Error("Enter a game name.");
     if (!leagueDateKey(date)) throw new Error("Enter a valid game date.");
+    const points = Object.fromEntries(before.results.map((r, i) => {
+      const value = editor.querySelector(`[data-result-points="${i}"]`).value;
+      const amount = Number(value);
+      if (!value.trim() || !Number.isSafeInteger(amount) || amount < 0)
+        throw new Error("Points must be non-negative whole numbers for every player.");
+      return [r.key, amount];
+    }));
     await correctResults({
       historyId: before._id,
       before,
       positions,
+      points,
       gameName,
       date,
     });

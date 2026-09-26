@@ -1,5 +1,11 @@
 # Calculated league statistics
 
+Administrators can use **Edit results** on a played game to correct its date,
+finishing positions, and awarded points. Changing a finish fills in standard
+points; the points field accepts a non-negative whole-number award, including
+zero. Corrections update the ledger and participant records together. Deploy the
+updated `correctResults` function and publish the frontend to use point overrides.
+
 `leagues/atlanta-v2/history` is the authoritative result ledger. Every finalized
 game has a stable `gameId`, calendar `date`, optional `seriesId`, and results
 containing player key, placement, and points actually awarded. Finalization

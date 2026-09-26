@@ -342,6 +342,14 @@ export async function amendResults(db, request, now = new Date()) {
     )
       throw new Error("Positions must match the recorded participants.");
     const used = new Set();
+    const points = request.points;
+    if (
+      points !== undefined &&
+      (!points || typeof points !== "object" || Array.isArray(points) ||
+        !equal(Object.keys(points).sort(), [...keys].sort()) ||
+        Object.values(points).some((value) => !Number.isSafeInteger(value) || value < 0))
+    )
+      throw new Error("Points must be non-negative whole numbers for every recorded participant.");
     const results = record.results.map((r) => {
       const value = positions[r.key];
       if (value !== "p" && !/^[1-8]$/.test(String(value)))
@@ -352,7 +360,7 @@ export async function amendResults(db, request, now = new Date()) {
       if (pos !== "p" && used.has(pos))
         throw new Error("Two players share the same finishing position.");
       used.add(pos);
-      return { ...r, pos, pts: ptFor(pos) };
+      return { ...r, pos, pts: points === undefined ? ptFor(pos) : points[r.key] };
     });
     const gameRef = db.doc(`${LEAGUE_PATH}/games/${safeId(record.gameId)}`);
     const game = await tx.get(gameRef);

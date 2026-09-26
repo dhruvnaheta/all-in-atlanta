@@ -511,6 +511,8 @@ test("admins can correct past results and keep their draft through live updates"
   await page.getByRole("button", { name: "Edit results", exact: true }).click();
   const editor = page.locator("#historyResultsEditor");
   await editor.locator("select").selectOption("1");
+  await expect(editor.getByLabel("Points for Alice", { exact: true })).toHaveValue("25");
+  await editor.getByLabel("Points for Alice", { exact: true }).fill("30");
   await editor
     .getByLabel("Game name", { exact: true })
     .fill("Corrected Thursday");
@@ -532,6 +534,7 @@ test("admins can correct past results and keep their draft through live updates"
     { alice: "1" },
   );
   expect(await page.evaluate(() => window.correctionRequest)).toMatchObject({
+    points: { alice: 30 },
     gameName: "Corrected Thursday",
     date: "2026-08-27",
   });
