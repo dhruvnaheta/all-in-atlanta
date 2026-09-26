@@ -265,8 +265,9 @@ bindActions(actions);
 
 initializeNavigation();
 renderAll();
-initializeFirebase((error) =>
-  toast("Live updates are unavailable. " + error.message),
+initializeFirebase(
+  (error) => toast("Live updates are unavailable. " + error.message),
+  (error) => toast("Google sign-in failed. " + error.message),
 )
   .then(() => {
     renderAll();

@@ -11,10 +11,16 @@ import { LS } from "./store.js";
 import { connectNativeSync } from "./native-sync.js";
 import { documentPatches } from "./schema.js";
 import { configureAuth, setSession, isAdmin, subscribeAuth } from "./auth.js";
+import {
+  googleAuthDomain,
+  usesGoogleRedirect,
+  googleSignIn,
+  acceptGoogleAdministrator,
+} from "./google-auth.js";
 import { configureCheckIn } from "./checkin.js";
 import { configureResults, configureResultCorrections } from "./results.js";
 
-export async function initializeFirebase(onError) {
+export async function initializeFirebase(onError, onAuthError = onError) {
   const [appSDK, dbSDK, authSDK, functionsSDK] = await Promise.all([
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"),
     import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"),
@@ -24,7 +30,7 @@ export async function initializeFirebase(onError) {
   const app = appSDK.initializeApp(
     emulator
       ? { ...FIREBASE_CONFIG, projectId: "demo-all-in-atlanta" }
-      : FIREBASE_CONFIG,
+      : { ...FIREBASE_CONFIG, authDomain: googleAuthDomain(FIREBASE_CONFIG) },
     firebaseAppName,
   );
   const db = dbSDK.getFirestore(app);
@@ -78,17 +84,8 @@ export async function initializeFirebase(onError) {
   const stopAuthSync = subscribeAuth(({ admin }) => sync.setAdmin(admin));
   configureAuth({
     async signInWithGoogle() {
-      const google = new authSDK.GoogleAuthProvider();
-      google.setCustomParameters({ prompt: "select_account" });
-      const { user } = await authSDK.signInWithPopup(auth, google);
-      const token = await user.getIdTokenResult(true);
-      if (token.claims.admin !== true) {
-        await authSDK.signOut(auth);
-        throw new Error(
-          "Administrator access required. Players do not need to sign in.",
-        );
-      }
-      setSession(user, true);
+      const result = await googleSignIn(authSDK, auth, usesGoogleRedirect());
+      await acceptGoogleAdministrator(authSDK, auth, result, setSession);
     },
     async signIn(email, password) {
       const { user } = await authSDK.signInWithEmailAndPassword(
@@ -140,6 +137,14 @@ export async function initializeFirebase(onError) {
   });
   let authRevision = 0;
   let tokenUser;
+  // Consume the returned credential once and report sign-in failures separately
+  // from live-data failures. The token listener also restores existing sessions.
+  try {
+    const result = await authSDK.getRedirectResult(auth);
+    await acceptGoogleAdministrator(authSDK, auth, result, setSession);
+  } catch (error) {
+    onAuthError(error);
+  }
   authSDK.onIdTokenChanged(auth, async (user) => {
     const revision = ++authRevision;
     // Refresh restored sessions once; refreshing emits another token event.

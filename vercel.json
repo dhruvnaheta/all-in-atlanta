@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://all-in-atlanta-pok.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://all-in-atlanta-pok.firebaseapp.com/__/firebase/:path*"
+    },
+    {
+      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin|account)/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin|account)",
+      "destination": "/index.html"
+    }
+  ]
+}
