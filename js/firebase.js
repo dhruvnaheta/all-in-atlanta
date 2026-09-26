@@ -2,7 +2,10 @@ import { emulator, firebaseAppName } from "./environment.js";
 import { configureAccount, clearAccount, updateAccount } from "./account.js";
 import { LEAGUE_PATH } from "./schema.js";
 import { configureCommands } from "./commands.js";
-import { configureAdminAccess } from "./admin-access.js";
+import {
+  configureAdminAccess,
+  configureAdminDirectory,
+} from "./admin-access.js";
 import { FIREBASE_CONFIG } from "./config.js";
 import { LS } from "./store.js";
 import { connectNativeSync } from "./native-sync.js";
@@ -44,6 +47,20 @@ export async function initializeFirebase(onError) {
     if (!isAdmin()) throw new Error("Administrator sign-in required.");
     const { data } = await addAdministrator(request);
     return data;
+  });
+  const getAdministrators = functionsSDK.httpsCallable(
+    functions,
+    "getAdministrators",
+  );
+  const deleteAdministrator = functionsSDK.httpsCallable(
+    functions,
+    "deleteAdministrator",
+  );
+  configureAdminDirectory(async (request) => {
+    if (!isAdmin()) throw new Error("Administrator sign-in required.");
+    return (
+      await (request.uid ? deleteAdministrator : getAdministrators)(request)
+    ).data;
   });
   let queue = Promise.resolve();
   LS.connect({

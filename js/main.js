@@ -15,7 +15,11 @@ import { toast, closeEditPlayer } from "./dom.js";
 import { isAdmin, subscribeAuth } from "./auth.js";
 
 import { openAdmin } from "./views/admin.js";
-import { adminAddAdministrator } from "./views/admin/access.js";
+import {
+  adminAddAdministrator,
+  adminRemoveAdministrator,
+  loadAdministrators,
+} from "./views/admin/access.js";
 import {
   go,
   sR,
@@ -174,6 +178,8 @@ export async function jumpLevel(index) {
 bindDrafts();
 export const actions = {
   adminAddAdministrator,
+  adminRemoveAdministrator,
+  loadAdministrators,
   toggleMobileMenu,
   loginMode: (element) => setLoginMode(element.dataset.arg0),
   loginAuthenticate: (element) => authenticateAdmin(element),

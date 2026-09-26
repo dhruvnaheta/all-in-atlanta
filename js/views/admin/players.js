@@ -111,7 +111,7 @@ export function openEditPlayer(key) {
         <p style="font-size:12px">Keeps the selected profile and its contact details, fills missing contacts, and transfers game records. Conflicting results or two linked accounts must be resolved first.</p>
         <button class="btn btn-ghost" data-click="mergePlayerProfile" data-arg0="${esc(key)}">Merge duplicate</button>
       </div>
-      <button data-click="deletePlayerProfile" data-arg0="${esc(key)}" style="width:100%;margin-top:10px;background:#dc2626;color:#fff;border:none;border-radius:7px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer">DELETE PROFILE</button>
+      <button data-click="deletePlayerProfile" data-arg0="${esc(key)}" style="width:100%;margin-top:10px;background:var(--red);color:#fff;border:none;border-radius:7px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer">DELETE PROFILE</button>
     </div>`;
   overlay.setAttribute("aria-labelledby", "editPlayerTitle");
   overlay

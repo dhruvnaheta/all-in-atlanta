@@ -72,7 +72,7 @@ export function renderSeriesSection() {
             ${(g.tonight || []).length ? `<div style="font-size:11px;color:var(--muted)">${g.tonight.length} in</div>` : ""}
             ${
               isActive
-                ? `<span style="font-size:10px;font-weight:700;color:var(--red);padding:2px 6px;border-radius:3px;background:rgba(166,28,28,.1);letter-spacing:.5px">ACTIVE</span>`
+                ? `<span style="font-size:10px;font-weight:700;color:var(--red);padding:2px 6px;border-radius:3px;background:var(--red-tint);letter-spacing:.5px">ACTIVE</span>`
                 : isSelected
                   ? `<span style="font-size:10px;color:var(--muted)">SELECTED</span>`
                   : `<button class="btn btn-ghost" style="padding:2px 8px;font-size:11px" data-click="adminActivateGame" data-arg0="${esc(g.id)}">▶</button>`

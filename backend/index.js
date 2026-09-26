@@ -3,7 +3,11 @@ import { leagueCommand } from "./commands.js";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import { grantAdministrator } from "./admin-access.js";
+import {
+  grantAdministrator,
+  listAdministrators,
+  removeAdministrator,
+} from "./admin-access.js";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import {
   checkIn,
@@ -28,6 +32,25 @@ export const addAdministrator = onCall(
     }
   },
 );
+function administratorCallable(operation) {
+  return onCall(
+    { region: "us-central1", maxInstances: 10 },
+    async (request) => {
+      try {
+        return await operation(getAuth(), db, request);
+      } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        console.error("Administrator operation failed", { code: error.code });
+        throw new HttpsError(
+          "internal",
+          "Administrator access could not be updated. Please try again.",
+        );
+      }
+    },
+  );
+}
+export const getAdministrators = administratorCallable(listAdministrators);
+export const deleteAdministrator = administratorCallable(removeAdministrator);
 function callable(operation, admin = false) {
   return onCall(
     { region: "us-central1", maxInstances: 10 },

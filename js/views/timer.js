@@ -138,7 +138,7 @@ export function renderTVTimer() {
   const isUrg = remaining < urgentMs && !isBreak;
   const isWarn = remaining < warnMs && !isBreak;
   const timeColor = isUrg
-    ? "#e74c3c"
+    ? "var(--red-light)"
     : isWarn
       ? "#f39c12"
       : isBreak
@@ -163,7 +163,7 @@ export function renderTVTimer() {
       ${isBreak ? "BREAK" : level.label}
     </div>
     <div style="width:90%;max-width:700px;height:10px;background:rgba(255,255,255,.1);border-radius:5px;margin:24px auto;overflow:hidden">
-      <div style="height:100%;width:${(progress * 100).toFixed(1)}%;background:${isUrg ? "#e74c3c" : isWarn ? "#f39c12" : isBreak ? "#27ae60" : "#c89e3a"};border-radius:5px;transition:width .5s linear"></div>
+      <div style="height:100%;width:${(progress * 100).toFixed(1)}%;background:${isUrg ? "var(--red-light)" : isWarn ? "#f39c12" : isBreak ? "#27ae60" : "#c89e3a"};border-radius:5px;transition:width .5s linear"></div>
     </div>
     <div style="color:rgba(255,255,255,.45);font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,3vw,28px);letter-spacing:2px;margin-top:8px">
       UP NEXT &nbsp; <span style="color:rgba(255,255,255,.75);font-weight:600">${nextLabel}</span>
@@ -196,7 +196,7 @@ export function _updateAdminTimerCtrl(infoEl, timeEl, progEl) {
     progEl.style.background = isBreak
       ? "#7dd3fc"
       : isUrg
-        ? "#f87171"
+        ? "var(--red-light)"
         : isWarn
           ? "#fbbf24"
           : "var(--gold)";

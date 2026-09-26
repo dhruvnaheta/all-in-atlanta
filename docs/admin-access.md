@@ -1,25 +1,26 @@
-# Adding administrators
+# Administrator access
 
-Open `/admin` directly to sign in. Public navigation has no admin or account link.
+Use **Admin** in the footer to sign in. The Administrators section lists current
+administrators and labels owners. All administrators can add administrators.
+Only owners can remove administrators; owners cannot be removed through the UI.
+Removal preserves the account and other claims, clears the admin claim, and revokes
+refresh tokens. Already-issued ID tokens can remain valid until expiry (up to an hour).
 
-On `/admin/`, use **Administrators → Add administrator** and enter an email.
-This grants full administration access, including the ability to add more administrators.
-Existing accounts keep their passwords and other custom claims. New emails get an
-Auth account; disabled accounts cannot receive access through this form.
+Ownership is a single `owner: true` database flag at
+`leagues/atlanta-v2/administratorAccess/{authUid}`. Clients cannot read or write
+these documents directly. The server checks the flag on every removal request,
+and checks live Auth admin access for listing, adding, and removing administrators.
+There is no role editor or browser API for granting ownership.
 
-No invitation is sent. Tell the recipient to open the Admin sign-in page and use
-Google sign-in with that email, or choose **Forgot password** to set a password.
-Existing sessions must sign out and sign in again to receive the new access.
+To set Meg and Julia as the only owners, using their existing admin sign-in emails:
 
-The `addAdministrator` callable checks both the caller's token and their current
-Firebase Auth record before granting the `admin` custom claim. It does not accept
-claim names or arbitrary roles from the browser.
+```
+node scripts/set-admin-owners.js PROJECT MEG_EMAIL JULIA_EMAIL
+```
 
-Deploy the `addAdministrator` Cloud Function along with the frontend before using
-this feature in production. No Firestore rules change is required for this feature.
+Deploy `getAdministrators` and `deleteAdministrator` with the frontend (and retain
+`addAdministrator`). No Firestore rules change is required.
 
-Validation:
-
-- `npm test` covers validation, authorization, existing claims, disabled users and retries.
-- `npm run test:admin-access` exercises the callable with the Auth and Functions emulators.
-- `npx playwright test tests/admin-panel.spec.js` covers the form and error recovery.
+Adding an administrator sends no invitation. Recipients can use Google sign-in or
+Forgot password on the Admin page. Existing accounts retain their passwords and
+other claims. Disabled accounts cannot be granted access through the form.

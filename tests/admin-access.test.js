@@ -112,3 +112,95 @@ test("claim write failures are not reported as successful grants", async () => {
   };
   await assert.rejects(grantAdministrator(f.auth, f.request), /Unavailable/);
 });
+
+test("directory lists all admin pages and identifies owners from DB flags", async () => {
+  const { listAdministrators } = await import("../backend/admin-access.js");
+  const f = fixture();
+  const db = {
+    collection: () => ({
+      get: async () => ({
+        docs: [{ id: "caller", data: () => ({ owner: true }) }],
+      }),
+    }),
+  };
+  f.auth.listUsers = async (_, token) =>
+    token
+      ? {
+          users: [
+            {
+              uid: "other",
+              email: "a@example.test",
+              customClaims: { admin: true },
+            },
+          ],
+        }
+      : {
+          users: [
+            {
+              uid: "caller",
+              email: "z@example.test",
+              customClaims: { admin: true },
+            },
+            { uid: "player" },
+          ],
+          pageToken: "next",
+        };
+  const result = await listAdministrators(f.auth, db, f.request);
+  assert.equal(result.owner, true);
+  assert.deepEqual(
+    result.administrators.map(({ uid, owner }) => ({ uid, owner })),
+    [
+      { uid: "other", owner: false },
+      { uid: "caller", owner: true },
+    ],
+  );
+});
+test("only DB owners can remove admins, owners are protected and other claims survive", async () => {
+  const { removeAdministrator } = await import("../backend/admin-access.js");
+  for (const [callerOwner, targetOwner, expected] of [
+    [false, false, "permission-denied"],
+    [true, true, "failed-precondition"],
+    [true, false, null],
+  ]) {
+    const f = fixture();
+    f.request.data = { uid: "target" };
+    f.auth.getUser = async () => ({
+      customClaims: { admin: true, staff: true },
+    });
+    f.auth.revokeRefreshTokens = async (uid) => f.writes.push({ revoked: uid });
+    const db = {
+      collection: () => ({
+        doc: (uid) => ({
+          get: async () => ({
+            data: () => ({
+              owner: uid === "caller" ? callerOwner : targetOwner,
+            }),
+          }),
+        }),
+      }),
+    };
+    if (expected) {
+      await assert.rejects(removeAdministrator(f.auth, db, f.request), {
+        code: expected,
+      });
+      assert.deepEqual(f.writes, []);
+    } else {
+      assert.deepEqual(await removeAdministrator(f.auth, db, f.request), {
+        removed: true,
+      });
+      assert.deepEqual(f.writes, [
+        { uid: "target", claims: { staff: true } },
+        { revoked: "target" },
+      ]);
+    }
+  }
+});
+test("revoked admins cannot list or remove administrators even with an old token", async () => {
+  const { listAdministrators, removeAdministrator } =
+    await import("../backend/admin-access.js");
+  const f = fixture({ caller: { customClaims: {} } });
+  for (const operation of [listAdministrators, removeAdministrator])
+    await assert.rejects(operation(f.auth, {}, f.request), {
+      code: "permission-denied",
+    });
+});

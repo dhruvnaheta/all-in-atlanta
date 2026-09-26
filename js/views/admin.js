@@ -1,3 +1,4 @@
+import { loadAdministrators } from "./admin/access.js";
 import { renderAdminLogin } from "./admin-login.js";
 import { renderMarkup } from "../render.js";
 import { renderPlayerTable } from "../refresh.js";
@@ -72,9 +73,9 @@ export function renderAdmin() {
               return `<option value="${g.id}"${g.id === getActiveGameId() ? " selected" : ""}>${esc(g.name)}${statusTag}</option>`;
             })
             .join("");
-          return `<div style="margin-bottom:12px">
-            <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:5px">SELECT GAME</div>
-            <select id="gcGameSelect" data-change="adminSwitchGame" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none;background:var(--bg);color:var(--text)">${opts}</select>
+          return `<div class="gcp-game-select">
+            <label for="gcGameSelect">Select game</label>
+            <select id="gcGameSelect" data-change="adminSwitchGame">${opts}</select>
           </div>`;
         })()}
         <div class="gcp-row">
@@ -126,7 +127,9 @@ export function renderAdmin() {
 
     <div class="asec">
       <div class="asec-title">Administrators</div>
-      <p>Grant full access to manage games, players and other administrators.</p>
+      <div id="administratorList" data-preserve aria-live="polite"></div>
+      <button class="btn btn-ghost" data-click="loadAdministrators">Refresh administrators</button>
+      <p>Grant access to manage games, players and add administrators. Only owners can remove administrators.</p>
       <form id="adminAccessForm" data-submit="adminAddAdministrator" data-preserve>
         <label for="adminAccessEmail">Administrator email</label>
         <div class="admin-access-fields">
@@ -153,4 +156,6 @@ export function renderAdmin() {
   }
   // Always refresh player table after admin re-renders
   setTimeout(renderPlayerTable, 0);
+  if (!document.getElementById("administratorList")?.textContent)
+    void loadAdministrators();
 }

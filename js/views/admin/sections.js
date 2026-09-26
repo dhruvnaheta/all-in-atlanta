@@ -136,8 +136,11 @@ export function tonightList(tonight, players) {
   // tonight list — show contact info
   const tonightList = tonight.length
     ? `
-    <div class="asec">
-      <div class="asec-title">Tonight's Check-Ins (${tonight.length})</div>
+    <div class="asec attendance-section">
+      <div class="attendance-heading">
+        <div class="asec-title">Tonight's Check-Ins (${tonight.length})</div>
+        <button class="attendance-clear" data-click="adminClearTonight">Clear all</button>
+      </div>
       ${tonight
         .map((p) => {
           const rec = players[p.key] || {};
@@ -150,19 +153,19 @@ export function tonightList(tonight, players) {
           const contactLine = [rec.email, rec.phone]
             .filter(Boolean)
             .join(" · ");
-          return `<div class="pchip" data-key="attendee-${esc(p.key)}" style="margin-bottom:6px">
+          return `<div class="pchip" data-key="attendee-${esc(p.key)}">
           <div class="pchip-left">
             <div class="pchip-av">${esc(init)}</div>
-            <div>
+            <div class="attendee-info">
               <div class="pchip-name">${esc(rec.dn || p.key)}</div>
-              <div class="pchip-meta">${esc(p.time)}${rec.games ? " · " + rec.games + " games" : ""}${contactLine ? ' · <span style="color:var(--green)">' + esc(contactLine) + "</span>" : ""}${rec.currentStreak >= 2 ? ' · <span style="color:var(--gold-d);font-weight:600">🔥 ' + rec.currentStreak + "-game streak</span>" : ""}</div>
+              <div class="pchip-meta">${esc(p.time)}${rec.games ? " · " + rec.games + (rec.games === 1 ? " game" : " games") : ""}${rec.currentStreak >= 2 ? ' · <span style="color:var(--gold-d);font-weight:600">🔥 ' + rec.currentStreak + "-game streak</span>" : ""}</div>
+              ${contactLine ? `<div class="attendee-contact">${esc(contactLine)}</div>` : ""}
             </div>
           </div>
-          <button class="pchip-rm" data-click="adminRemovePlayer" data-arg0="${esc(p.key)}">✕</button>
+          <button aria-label="Remove ${esc(rec.dn || p.key)} from tonight" class="pchip-rm" data-click="adminRemovePlayer" data-arg0="${esc(p.key)}">✕</button>
         </div>`;
         })
         .join("")}
-      <div style="margin-top:10px"><button class="btn btn-red" data-click="adminClearTonight">Clear All</button></div>
     </div>`
     : "";
 
@@ -176,10 +179,11 @@ export function finishSection(state, tonight, players, activeGame) {
       ? `
     <div class="asec" id="finishSection">
       <div class="asec-title">Assign Finish Positions</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Before ending the game, enter the finishing order (1st–8th) below, then submit to award finish points. Unassigned players receive 1 participation point.</div>
-      <div style="font-size:11px;line-height:1.5;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:11px">
-        <strong>Game streak:</strong> Monday, Wednesday, and Thursday games all count. Missing any scheduled game resets the streak. At 5 consecutive games, award the streak chips manually; the next attended scheduled game starts a new 1/5 cycle.
-      </div>
+      <p class="finish-intro">Assign places 1–8, then submit to award points. Unassigned players receive 1 participation point.</p>
+      <details class="finish-help">
+        <summary>Game streak &amp; chip awards</summary>
+        <p> Monday, Wednesday, and Thursday games all count. Missing any scheduled game resets the streak. At 5 consecutive games, award the streak chips manually; the next attended scheduled game starts a new 1/5 cycle.</p>
+      </details>
       ${tonight
         .map((p) => {
           const rec = players[p.key] || {};
@@ -198,8 +202,8 @@ export function finishSection(state, tonight, players, activeGame) {
               : `<span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;background:#f7f5f0;color:var(--muted);margin-left:6px">${streakPreview.count}/5</span>`;
           return `<div class="finish-row" data-key="finish-${esc(p.key)}">
           <div class="fpos" id="fpos_${sn}">—</div>
-          <div style="flex:1;font-weight:500;font-size:13px">${esc(rec.dn || p.key)}${streakBadge}</div>
-          <select class="fsel" id="fsel_${sn}" data-player-key="${esc(p.key)}" data-change="syncFpos" data-arg0="${esc(sn)}">
+          <div class="finish-player"><label for="fsel_${sn}">${esc(rec.dn || p.key)}</label><span class="finish-streak">Streak ${streakBadge}</span></div>
+          <select aria-label="Finish position for ${esc(rec.dn || p.key)}" class="fsel" id="fsel_${sn}" data-player-key="${esc(p.key)}" data-change="syncFpos" data-arg0="${esc(sn)}">
             <option value="">— Not placed —</option>
             <option value="1">1st — 25 pts</option>
             <option value="2">2nd — 18 pts</option>
@@ -215,7 +219,7 @@ export function finishSection(state, tonight, players, activeGame) {
         </div>`;
         })
         .join("")}
-      <div style="margin-top:13px;display:flex;gap:10px;flex-wrap:wrap">
+      <div class="finish-actions">
         <button class="btn btn-green" data-click="submitResults">Submit &amp; Award Points</button>
         <button class="btn btn-ghost" data-click="adminStopWithoutResults">Stop Without Results…</button>
       </div>
@@ -235,7 +239,7 @@ export function historyRows(history) {
         const isStopped = !!h.stopped;
         const badge = isStopped
           ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:#fef3c7;color:#92400e">STOPPED</span>`
-          : `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:#fde8e8;color:#7a1414">COMPLETE</span>`;
+          : `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:var(--red-soft);color:var(--red)">COMPLETE</span>`;
         const posLabel = (pos) => (typeof pos === "number" ? "#" + pos : "P");
         const detail = `<div id="gh_${idx}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
       <table style="width:100%;border-collapse:collapse;font-size:12px">

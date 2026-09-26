@@ -9,3 +9,13 @@ export async function grantAdminAccess(email) {
     );
   return gateway({ email });
 }
+
+let directoryGateway;
+export function configureAdminDirectory(adapter) {
+  directoryGateway = adapter;
+}
+export async function adminDirectory(request = {}) {
+  if (!directoryGateway)
+    throw new Error("Administrator list is unavailable. Please try again.");
+  return directoryGateway(request);
+}
