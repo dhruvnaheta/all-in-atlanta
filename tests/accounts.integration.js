@@ -65,6 +65,97 @@ async function link(uid = "alice", key = "alice") {
   await call(uid, { action: "requestLink", playerKey: key });
   await call("admin", { action: "approveLink", uid }, true);
 }
+test("verified email auto-link normalizes legacy contacts, preserves data and is idempotent", async () => {
+  await db
+    .doc(`${root}/playerContacts/p_alice`)
+    .update({ email: " Alice@EXAMPLE.test " });
+  const before = (await db.doc(`${root}/players/p_alice`).get()).data();
+  assert.deepEqual(
+    await call("alice", { action: "autoLink", playerKey: "bob" }),
+    { linked: true },
+  );
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: true,
+  });
+  const account = (await db.doc(`${root}/accounts/alice`).get()).data();
+  assert.equal(account.playerKey, "alice");
+  assert.equal(account.linkedBy, "verified-email");
+  assert.equal(
+    (await db.doc(`${root}/playerAccounts/p_alice`).get()).data().uid,
+    "alice",
+  );
+  assert.deepEqual(
+    (await db.doc(`${root}/players/p_alice`).get()).data(),
+    before,
+  );
+  assert.equal((await call("alice", { action: "profile" })).phone, "123");
+  await db.doc(`${root}/players/p_alice`).delete();
+  await db.doc(`${root}/players/p_alice`).set(before);
+  await assert.rejects(call("alice", { action: "profile" }), /unavailable/);
+});
+test("auto-link refuses unverified, unmatched, duplicate, missing and already owned profiles", async () => {
+  await assert.rejects(playerAccount(db, { action: "autoLink" }), /Sign in/);
+  await db
+    .doc(`${root}/playerContacts/p_alice`)
+    .update({ email: "alice@example.test" });
+  assert.deepEqual(await call("alice", { action: "autoLink" }, false, false), {
+    linked: false,
+  });
+  assert.deepEqual(
+    await call("stranger", { action: "autoLink", email: "alice@example.test" }),
+    { linked: false },
+  );
+  await db
+    .doc(`${root}/playerContacts/p_bob`)
+    .set({ email: " ALICE@example.test " });
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: false,
+  });
+  await db.doc(`${root}/playerContacts/p_bob`).delete();
+  const profile = (await db.doc(`${root}/players/p_alice`).get()).data();
+  await db.doc(`${root}/players/p_alice`).delete();
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: false,
+  });
+  await db.doc(`${root}/players/p_alice`).set(profile);
+  await link("owner");
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: false,
+  });
+  assert.equal((await db.doc(`${root}/accounts/alice`).get()).exists, false);
+});
+test("auto-link handles matching pending claims but respects rejections, other claims and maintenance", async () => {
+  await db
+    .doc(`${root}/playerContacts/p_alice`)
+    .update({ email: "alice@example.test" });
+  await call("alice", { action: "requestLink", playerKey: "bob" });
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: false,
+  });
+  await call("admin", { action: "rejectLink", uid: "alice" }, true);
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: false,
+  });
+  await call("alice", { action: "requestLink", playerKey: "alice" });
+  await db.doc(`${root}/operations/control`).update({ writesEnabled: false });
+  await assert.rejects(call("alice", { action: "autoLink" }), /maintenance/);
+  await db.doc(`${root}/operations/control`).update({ writesEnabled: true });
+  assert.deepEqual(await call("alice", { action: "autoLink" }), {
+    linked: true,
+  });
+});
+test("simultaneous email claims cannot acquire the same profile", async () => {
+  const results = await Promise.all(
+    ["first", "second"].map((uid) =>
+      playerAccount(db, { action: "autoLink" }, new Date(), {
+        uid,
+        token: { email: "private@example.test", email_verified: true },
+      }),
+    ),
+  );
+  assert.equal(results.filter((r) => r.linked).length, 1);
+  assert.equal((await db.collection(`${root}/accounts`).get()).size, 1);
+});
 test("linking requires verified sign-in and admin approval, preserves stats and rejects duplicate ownership", async () => {
   const before = (await db.doc(`${root}/players/p_alice`).get()).data();
   await assert.rejects(

@@ -8,10 +8,21 @@ players and admins; the Firebase `admin: true` custom claim still controls every
 administrative operation. Admins signing in through My Stats open the admin view
 and can return to their personal page.
 
-Players create an account, verify their email, and request an existing player
-profile (or request a new player name). An admin confirms identity and approves or
-declines the request under **Player Account Requests**. Approval of an existing
-player does not edit that player's results, statistics, name or contacts.
+Players create an account and verify their email. On sign-in or after verification,
+the server automatically links a unique matching private player contact email
+(ignoring case and surrounding whitespace). This preserves all existing results,
+statistics, names and contacts. No accounts are provisioned or emails sent in bulk.
+Unmatched players request an existing profile or a new player name; an admin
+confirms identity under **Player Account Requests**. Duplicate contact emails,
+already-owned profiles, rejected requests and pending claims for a different
+profile are never automatically linked.
+
+The `autoLink` action trusts only the verified authentication token email. It scans
+the private contacts inside a transaction, checks the existing profile and ownership,
+and records `linkedBy: "verified-email"` and `linkedAt` on the account. At the
+current league size this avoids a contact-data migration; a larger league should
+use a transactionally maintained normalized email index. Deploy the updated
+`managePlayerAccount` function before the matching frontend.
 
 ## Data and permissions
 

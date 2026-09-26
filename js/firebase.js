@@ -98,26 +98,57 @@ export async function initializeFirebase(onError) {
   configureAccount(async (request) => (await accountCall(request)).data);
   let accountUid,
     accountAdmin,
+    accountEmail,
+    accountVerified,
     accountGeneration = 0,
     profileGeneration = 0;
   let stopAccount = () => {},
     stopRequests = () => {};
   const stopAccountSync = subscribeAuth(({ user, admin }) => {
-    if (accountUid === user?.uid && accountAdmin === admin) return;
+    if (
+      accountUid === user?.uid &&
+      accountAdmin === admin &&
+      accountEmail === user?.email &&
+      accountVerified === user?.emailVerified
+    )
+      return;
     accountUid = user?.uid;
     accountAdmin = admin;
+    accountEmail = user?.email;
+    accountVerified = user?.emailVerified;
     const generation = ++accountGeneration;
     ++profileGeneration;
     stopAccount();
     stopRequests();
     clearAccount();
     if (!user) return;
+    let attemptedAutoLink = false;
     stopAccount = dbSDK.onSnapshot(
       dbSDK.doc(db, `${LEAGUE_PATH}/accounts/${encodeURIComponent(user.uid)}`),
       async (snapshot) => {
         if (generation !== accountGeneration) return;
         const account = snapshot.data() || null;
         const profileRevision = ++profileGeneration;
+        if (!account?.playerKey && user.emailVerified && !attemptedAutoLink) {
+          attemptedAutoLink = true;
+          try {
+            const { data } = await accountCall({ action: "autoLink" });
+            // A successful match arrives through this same account listener.
+            if (data.linked) return;
+          } catch (error) {
+            if (
+              generation === accountGeneration &&
+              profileRevision === profileGeneration
+            )
+              updateAccount({ loaded: true, account, error: error.message });
+            return;
+          }
+          if (
+            generation !== accountGeneration ||
+            profileRevision !== profileGeneration
+          )
+            return;
+        }
         updateAccount({ loaded: true, account, profile: null, error: null });
         if (account?.playerKey) {
           try {

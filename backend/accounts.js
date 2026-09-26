@@ -19,8 +19,11 @@ const validKey = (key) => {
   return key;
 };
 
-// Account identity is separate from league statistics. Only an administrator can
-// attach a UID to a player; the reverse mapping prevents duplicate ownership.
+const normalizedEmail = (value) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+// Account identity is separate from league statistics. Verified unique email
+// matches and admin approvals both use the reverse mapping to prevent duplicates.
 export async function playerAccount(db, request, now = new Date(), auth) {
   if (!auth?.uid) throw new Error("Sign in to manage your player account.");
   const action = request?.action;
@@ -60,6 +63,50 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       throw new Error(
         "League maintenance is in progress. Please try again shortly.",
       );
+    if (action === "autoLink") {
+      const email = normalizedEmail(auth.token?.email);
+      if (
+        !auth.token?.email_verified ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      )
+        return { linked: false };
+      const current = (await tx.get(ownRef)).data();
+      if (current?.playerKey) return { linked: true };
+      // Do not override an administrator's rejection or a different pending claim.
+      if (current?.status === "rejected") return { linked: false };
+      // Legacy contacts have no normalized index. Scan privately in the transaction
+      // so case/whitespace variants and duplicate addresses cannot evade matching.
+      const contacts = await tx.get(
+        db.collection(`${LEAGUE_PATH}/playerContacts`),
+      );
+      const matches = contacts.docs.filter(
+        (doc) => normalizedEmail(doc.data().email) === email,
+      );
+      if (matches.length !== 1) return { linked: false };
+      const id = matches[0].id;
+      const profile = await tx.get(ref(`players/${id}`));
+      if (!profile.exists) return { linked: false };
+      const key = validKey(profile.data().key);
+      if (playerId(key) !== id) return { linked: false };
+      if (
+        current?.status === "pending" &&
+        (current.newPlayer || current.requestedKey !== key)
+      )
+        return { linked: false };
+      const linkRef = ref(`playerAccounts/${id}`);
+      if ((await tx.get(linkRef)).exists) return { linked: false };
+      tx.create(linkRef, { uid: auth.uid, playerKey: key });
+      tx.set(ownRef, {
+        uid: auth.uid,
+        email: auth.token.email,
+        playerKey: key,
+        playerCreatedAt: profile.createTime,
+        status: "linked",
+        linkedBy: "verified-email",
+        linkedAt: now.toISOString(),
+      });
+      return { linked: true };
+    }
     if (action === "requestLink") {
       if (!auth.token?.email_verified)
         throw new Error(
