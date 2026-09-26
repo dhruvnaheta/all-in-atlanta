@@ -1,3 +1,4 @@
+import { validateContact } from "../contact.js";
 import {
   searchPlayers,
   similarPlayers,
@@ -326,6 +327,7 @@ export async function saveAccountProfile() {
     email: document.getElementById("accountContactEmail").value.trim(),
     phone: document.getElementById("accountPhone").value.trim(),
   };
+  validateContact(profile);
   await accountCommand({ action: "saveProfile", ...profile });
   if (currentUser()?.uid === uid) updateAccount({ profile });
   toast("Profile saved.");

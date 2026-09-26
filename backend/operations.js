@@ -1,3 +1,4 @@
+import { validateContact } from "../js/contact.js";
 import { DERIVED_PLAYER_FIELDS, profileOnly } from "../js/stats.js";
 import { requireRunning } from "../js/game-model.js";
 import {
@@ -59,6 +60,7 @@ export async function savePatches(db, request) {
       throw new Error(
         "Player statistics are calculated from recorded results.",
       );
+    if (patch.path.startsWith("playerContacts/")) validateContact(patch.after);
     seen.add(patch.path);
   }
   return db.runTransaction(async (tx) => {
@@ -161,12 +163,19 @@ export async function checkInTransaction(
       ? [participantSnapshot.data().checkIn]
       : [],
   };
+  // Include existing names when creating a profile, including legacy spacing
+  // and display names whose stable keys differ from their current names.
+  const players = profileSnapshot.exists
+    ? { [request.key]: profileSnapshot.data() }
+    : Object.fromEntries(
+        (await tx.get(db.collection(`${LEAGUE_PATH}/players`))).docs.map(
+          (doc) => [doc.data().key, doc.data()],
+        ),
+      );
   const state = {
     activeGameId: game.id,
     gameList: [game],
-    players: profileSnapshot.exists
-      ? { [request.key]: profileSnapshot.data() }
-      : {},
+    players,
   };
   const next = applyCheckIn(state, request, now, { admin });
   if (!profileSnapshot.exists && next.players[request.key]) {

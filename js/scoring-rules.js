@@ -113,6 +113,18 @@ export function nextScheduledLeagueDate(prevDateStr) {
   return next;
 }
 
+export function isScheduledLeagueDate(dateStr) {
+  const date = parseLeagueDate(dateStr);
+  if (!date) return false;
+  const days =
+    date < new Date(2026, 7, 19)
+      ? [2, 4]
+      : date < new Date(2026, 8, 14)
+        ? [3, 4]
+        : [1, 3, 4];
+  return days.includes(date.getDay());
+}
+
 export function isNextScheduledGame(prevDateStr, curDateStr) {
   const expected = nextScheduledLeagueDate(prevDateStr);
   const current = parseLeagueDate(curDateStr);

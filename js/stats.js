@@ -1,6 +1,7 @@
 import { atlantaDateKey, leagueDateKey } from "./league-date.js";
 import {
   updatePlayerStreak,
+  isScheduledLeagueDate,
   STREAK_TRACKING_VERSION,
 } from "./scoring-rules.js";
 
@@ -94,17 +95,27 @@ export function calculateStats(profiles, history, now = new Date()) {
     monthPoints: 0,
     monthGames: 0,
   };
+  // Attendance at any game on the same league date satisfies that night.
+  const attendanceByDate = new Map();
+  for (const game of games.values()) {
+    if (!game.date) continue;
+    if (!attendanceByDate.has(game.date))
+      attendanceByDate.set(game.date, new Set());
+    for (const key of game.results.keys())
+      attendanceByDate.get(game.date).add(key);
+  }
+  let checkedDate;
   for (const game of [...games.values()].sort(
     (a, b) =>
       (a.date || "").localeCompare(b.date || "") || a.id.localeCompare(b.id),
   )) {
     const thisMonth = game.date?.slice(0, 7) === month;
     if (thisMonth) totals.monthGames++;
-    // Absence is also a streak event, including for players who never return.
-    // Only dated, finalized history records can advance the streak timeline.
-    if (game.date) {
+    // Only absence from a scheduled league night can break an active streak.
+    if (game.date !== checkedDate && isScheduledLeagueDate(game.date)) {
+      checkedDate = game.date;
       for (const [key, player] of Object.entries(players)) {
-        if (game.results.has(key)) continue;
+        if (attendanceByDate.get(game.date).has(key)) continue;
         player.currentStreak = 0;
         player.streakAwardDue = false;
         player.streakAwardAtGameId = null;
@@ -148,7 +159,8 @@ export function calculateStats(profiles, history, now = new Date()) {
         pts: result.pts,
         checkInTime: result.checkInTime || null,
       });
-      if (game.date) updatePlayerStreak(player, game.date, game.id);
+      if (game.date && player.lastStreakGameDate !== game.date)
+        updatePlayerStreak(player, game.date, game.id);
     }
   }
   return { players, totals, month };

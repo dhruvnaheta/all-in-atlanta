@@ -1,3 +1,5 @@
+import { cleanPlayerName, hasPlayerName } from "./player-search.js";
+import { validateContact } from "./contact.js";
 import { normalizeGame } from "./game-model.js";
 // Shared with the callable function. No caller may supply points, game state, or totals.
 export function applyCheckIn(
@@ -32,7 +34,8 @@ export function applyCheckIn(
     if (tonight.some((p) => p.key === key))
       throw new Error("Already checked in tonight.");
     if (!Object.hasOwn(next.players, key)) {
-      const dn = profile?.dn?.trim();
+      const dn =
+        typeof profile?.dn === "string" ? cleanPlayerName(profile.dn) : null;
       if (
         typeof dn !== "string" ||
         dn.length < 2 ||
@@ -40,18 +43,15 @@ export function applyCheckIn(
         dn.toLowerCase() !== key
       )
         throw new Error("Please enter a valid player name.");
-      for (const field of ["email", "phone"]) {
-        if (
-          profile[field] !== undefined &&
-          (typeof profile[field] !== "string" || profile[field].length > 254)
-        )
-          throw new Error("Invalid contact information.");
-      }
+      if (hasPlayerName(next.players, dn))
+        throw new Error(
+          "That player already exists. Select the existing profile.",
+        );
+      const contact = validateContact(profile);
       next.players[key] = {
         key,
         dn,
-        email: profile.email?.trim() || "",
-        phone: profile.phone?.trim() || "",
+        ...contact,
         total: 0,
         month: 0,
         games: 0,

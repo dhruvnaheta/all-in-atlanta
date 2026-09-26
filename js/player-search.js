@@ -1,3 +1,15 @@
+// Preserve spelling and punctuation while making spacing consistent.
+export const cleanPlayerName = (name) => name.trim().replace(/\s+/gu, " ");
+export const playerNameKey = (name) => cleanPlayerName(name).toLowerCase();
+export const hasPlayerName = (players, name) => {
+  const key = playerNameKey(name);
+  return Object.values(players).some(
+    (player) =>
+      playerNameKey(player.dn || player.key) === key ||
+      playerNameKey(player.key) === key,
+  );
+};
+
 // Names are search hints, never proof that two profiles belong to one person.
 export const normalizePlayerName = (name) =>
   String(name || "")

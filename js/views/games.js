@@ -1,3 +1,4 @@
+import { cleanPlayerName, hasPlayerName } from "../player-search.js";
 import {
   isCheckInOpen,
   upcomingGames,
@@ -185,10 +186,10 @@ export function pubSearch(q) {
     dd.classList.remove("open");
     return;
   }
-  const players = getPlayers(),
-    ql = q.toLowerCase();
+  q = cleanPlayerName(q);
+  const players = getPlayers();
   const matches = findCheckInMatches(players, _getTonight(), q);
-  const exact = matches.find((p) => p.dn.toLowerCase() === ql);
+  const exact = hasPlayerName(players, q);
   let html = matches
     .map(
       (p, i) =>
@@ -261,7 +262,7 @@ export async function pubCheckIn(key, profile) {
 }
 export function pubCreateAndCheckIn(name) {
   // Show the new player form instead of immediately creating
-  const dn = name.trim();
+  const dn = cleanPlayerName(name);
   if (!dn || dn.length < 2) {
     showPubMsg("Please enter at least 2 characters.", "err");
     return;

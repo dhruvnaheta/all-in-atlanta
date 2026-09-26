@@ -1,3 +1,4 @@
+import { cleanPlayerName, hasPlayerName } from "../../player-search.js";
 import { setRegistration, clearRegistration } from "../../drafts.js";
 import { runCommand } from "../../commands.js";
 import { getPlayers, _getTonight } from "../../state.js";
@@ -17,10 +18,10 @@ export function adminSearch(q) {
     dd.classList.remove("open");
     return;
   }
-  const players = getPlayers(),
-    ql = q.toLowerCase();
+  q = cleanPlayerName(q);
+  const players = getPlayers();
   const matches = findCheckInMatches(players, _getTonight(), q);
-  const exact = matches.find((p) => p.dn.toLowerCase() === ql);
+  const exact = hasPlayerName(players, q);
   let html = matches
     .map(
       (
@@ -87,7 +88,7 @@ export async function adminCheckIn(key, profile) {
   }
 }
 export function adminCreateAndCheckIn(name) {
-  const dn = name.trim();
+  const dn = cleanPlayerName(name);
   if (!dn || dn.length < 2) {
     adminAlert("Name too short.", "err");
     return;

@@ -535,14 +535,23 @@ test("admins can correct past results and keep their draft through live updates"
   await expect(editor).toBeEmpty();
 });
 
-test("emulator navigation keeps real links and reloads in local mode", async ({ page, context }) => {
+test("emulator navigation keeps real links and reloads in local mode", async ({
+  page,
+  context,
+}) => {
   await page.goto("/?emulator=1");
   await page.locator("#nav-about").click();
   await expect(page).toHaveURL(/\/about\/\?emulator=1$/);
-  await expect(page.locator("#nav-about")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#nav-about")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await page.reload();
   await expect(page.locator("#page-about")).toBeVisible();
-  await expect(page.locator("#nav-games")).toHaveAttribute("href", /\/games\/\?emulator=1$/);
+  await expect(page.locator("#nav-games")).toHaveAttribute(
+    "href",
+    /\/games\/\?emulator=1$/,
+  );
   await page.locator("#nav-games").click();
   await page.goBack();
   await expect(page).toHaveURL(/\/about\/\?emulator=1$/);
@@ -551,9 +560,40 @@ test("emulator navigation keeps real links and reloads in local mode", async ({ 
   const href = await page.locator("#nav-account").getAttribute("href");
   expect(href).toContain("emulator=1");
   const tab = await context.newPage();
-  await tab.route("https://**/*", route => route.abort());
-  await tab.route("**/js/firebase.js", route => route.fulfill({ contentType: "text/javascript", body: mock }));
+  await tab.route("https://**/*", (route) => route.abort());
+  await tab.route("**/js/firebase.js", (route) =>
+    route.fulfill({ contentType: "text/javascript", body: mock }),
+  );
   await tab.goto(href);
   await expect(tab.locator("#page-account")).toBeVisible();
   await expect(tab).toHaveURL(/emulator=1/);
 });
+
+for (const admin of [false, true]) {
+  test(`${admin ? "admin" : "public"} registration preserves inputs and rejects invalid contacts`, async ({
+    page,
+  }) => {
+    if (admin) await login(page);
+    else await page.locator("#nav-games").click();
+    const prefix = admin ? "admin" : "pub";
+    await page.locator(`#${prefix}SearchInput`).fill("Contact Test");
+    await page.locator(`#${prefix}SearchInput`).press("ArrowDown");
+    await page.locator(`#${prefix}SearchInput`).press("Enter");
+    await page.locator(`#${prefix}NpEmail`).fill("not-an-email");
+    await page.locator(`#${prefix}NpPhone`).fill("abc");
+    const submit = page.locator(`[data-click="${prefix}SubmitNewPlayer"]`);
+    await submit.click();
+    await expect(page.locator(`#${prefix}NpForm`)).toBeVisible();
+    await expect(page.locator(`#${prefix}NpEmail`)).toHaveValue("not-an-email");
+    await expect(page.locator("#s-players")).toHaveText("1");
+    await page.locator(`#${prefix}NpEmail`).fill("contact@example.test");
+    await submit.click();
+    await expect(page.locator(`#${prefix}NpForm`)).toBeVisible();
+    await expect(page.locator(`#${prefix}NpPhone`)).toHaveValue("abc");
+    await expect(page.locator("#s-players")).toHaveText("1");
+    await page.locator(`#${prefix}NpPhone`).fill("(404) 555-0100");
+    await submit.click();
+    await expect(page.locator(`#${prefix}NpForm`)).toBeHidden();
+    await expect(page.locator("#s-players")).toHaveText("2");
+  });
+}

@@ -266,7 +266,7 @@ test("profile updates cannot change points, roles, identities or private admin n
     action: "saveProfile",
     dn: "Alice A.",
     email: "new@example.test",
-    phone: "404",
+    phone: "4045550100",
     total: 9999,
     playerKey: "bob",
     admin: true,
@@ -309,5 +309,24 @@ test("new players require approval and declined requests can be retried", async 
   await assert.rejects(
     call("new", { action: "saveProfile", dn: "Test", email: "", phone: "" }),
     /maintenance/,
+  );
+});
+
+test("new account profiles normalize spacing and reject legacy duplicates", async () => {
+  await db
+    .doc(`${root}/players/p_legacy`)
+    .set({ key: "legacy", dn: "Bob  Smith" });
+  await assert.rejects(
+    call("bob", { action: "requestLink", newName: " Bob\tSmith " }),
+    /already exists/,
+  );
+  await call("jane", { action: "requestLink", newName: " Jane  Doe " });
+  const pending = (await db.doc(`${root}/accounts/jane`).get()).data();
+  assert.equal(pending.requestedKey, "jane doe");
+  assert.equal(pending.requestedName, "Jane Doe");
+  await db.doc(`${root}/players/p_jane`).set({ key: "jane", dn: "Jane   Doe" });
+  await assert.rejects(
+    call("admin", { action: "approveLink", uid: "jane" }, true),
+    /created since the request/,
   );
 });

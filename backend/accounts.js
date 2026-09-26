@@ -1,3 +1,5 @@
+import { cleanPlayerName, hasPlayerName } from "../js/player-search.js";
+import { validateContact } from "../js/contact.js";
 import { randomUUID } from "node:crypto";
 import { LEAGUE_PATH, playerId } from "../js/schema.js";
 import { checkInTransaction } from "./operations.js";
@@ -131,12 +133,19 @@ export async function playerAccount(db, request, now = new Date(), auth) {
         throw new Error("Your account already has a player profile.");
       if (current?.status === "pending")
         throw new Error("Your request is already waiting for approval.");
-      const newName = request.newName ? clean(request.newName) : "";
+      const newName = request.newName
+        ? cleanPlayerName(clean(request.newName))
+        : "";
       const key = validKey(newName ? newName.toLowerCase() : request.playerKey);
       if (newName && newName.length < 2)
         throw new Error("Enter your full player name.");
       const profile = await tx.get(ref(`players/${playerId(key)}`));
-      if (newName && profile.exists)
+      const names = newName
+        ? (await tx.get(db.collection(`${LEAGUE_PATH}/players`))).docs.map(
+            (doc) => doc.data(),
+          )
+        : [];
+      if (newName && (profile.exists || hasPlayerName(names, newName)))
         throw new Error(
           "That player already exists. Select the existing profile.",
         );
@@ -175,13 +184,25 @@ export async function playerAccount(db, request, now = new Date(), auth) {
         });
         return { saved: true };
       }
-      const key = validKey(account.requestedKey);
+      const key = validKey(
+        account.newPlayer
+          ? cleanPlayerName(account.requestedKey)
+          : account.requestedKey,
+      );
       const profileRef = ref(`players/${playerId(key)}`);
       const linkRef = ref(`playerAccounts/${playerId(key)}`);
       const [profile, link] = await tx.getAll(profileRef, linkRef);
       if (link.exists)
         throw new Error("Another account already owns this player profile.");
-      if (account.newPlayer && profile.exists)
+      const names = account.newPlayer
+        ? (await tx.get(db.collection(`${LEAGUE_PATH}/players`))).docs.map(
+            (doc) => doc.data(),
+          )
+        : [];
+      if (
+        account.newPlayer &&
+        (profile.exists || hasPlayerName(names, account.requestedName))
+      )
         throw new Error(
           "This player was created since the request. Reject it and ask them to select the existing profile.",
         );
@@ -202,7 +223,7 @@ export async function playerAccount(db, request, now = new Date(), auth) {
         tx.create(profileRef, {
           identityVersion: playerIdentity,
           key,
-          dn: account.requestedName,
+          dn: cleanPlayerName(account.requestedName),
           total: 0,
           month: 0,
           games: 0,
@@ -244,8 +265,8 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       const dn = clean(request.dn),
         email = clean(request.email, 254),
         phone = clean(request.phone, 40);
-      if (dn.length < 2 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))
-        throw new Error("Enter a valid name and contact email.");
+      if (dn.length < 2) throw new Error("Enter a valid player name.");
+      validateContact({ email, phone });
       // Explicit fields only: totals, results, roles and stable player keys are never editable here.
       tx.update(profileRef, { dn });
       tx.set(

@@ -1,3 +1,4 @@
+import { validateContact } from "../../contact.js";
 import { runCommand } from "../../commands.js";
 
 import { askConfirm } from "./dialogs.js";
@@ -122,15 +123,12 @@ export async function saveEditPlayer(key) {
   const name = (document.getElementById("ep_name")?.value || "").trim();
   const email = document.getElementById("ep_email").value.trim();
   const phone = document.getElementById("ep_phone").value.trim();
-  if (
-    name.length < 2 ||
-    name.length > 120 ||
-    email.length > 254 ||
-    phone.length > 40 ||
-    (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-  ) {
-    document.getElementById("editPlayerError").textContent =
-      "Enter a valid name and contact email (phone: up to 40 characters).";
+  try {
+    if (name.length < 2 || name.length > 120)
+      throw new Error("Enter a valid player name.");
+    validateContact({ email, phone });
+  } catch (error) {
+    document.getElementById("editPlayerError").textContent = error.message;
     return;
   }
   Object.assign(p, { dn: name, email, phone });

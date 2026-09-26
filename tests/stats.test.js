@@ -181,3 +181,62 @@ test("empty stopped games count; scoring replays previous results rather than pr
   assert.equal(calculateStats(profiles, empty.history, now).totals.games, 2);
   assert.equal(empty.players.a.currentStreak, 0);
 });
+
+test("off-schedule events preserve absent players' streaks and award eligibility", () => {
+  for (const dates of [
+    ["2026-09-23", "2026-09-24"],
+    ["2026-09-16", "2026-09-17", "2026-09-21", "2026-09-23", "2026-09-24"],
+  ]) {
+    const history = dates.map((date) => record(date, date));
+    const before = calculateStats(profiles, history, now).players.a;
+    history.push(record("special", "Sep 26, 2026", 1, { results: [] }));
+    assert.deepEqual(calculateStats(profiles, history, now).players.a, before);
+    history.push(record("scheduled-miss", "Sep 28, 2026", 1, { results: [] }));
+    const after = calculateStats(profiles, history, now).players.a;
+    assert.equal(after.currentStreak, 0);
+    assert.equal(after.streakAwardDue, false);
+    assert.equal(after.streakAwardAtGameId, null);
+  }
+});
+test("games on one night share attendance without resetting or double-counting streaks", () => {
+  const roster = { a: {}, b: {}, absent: {} };
+  const results = Object.keys(roster).map((key) => ({ key, pts: 1, pos: "p" }));
+  const history = [
+    record("mon", "Sep 21, 2026", 1, { results }),
+    record("wed", "Sep 23, 2026", 1, { results }),
+    record("thu-a", "Sep 24, 2026"),
+    record("thu-b", "2026-09-24", 1, {
+      results: [{ key: "b", pts: 1, pos: "p" }],
+    }),
+    record("thu-empty", "Sep 24, 2026", 1, { results: [] }),
+    record("thu-repeat", "Sep 24, 2026"),
+  ];
+  for (const records of [history, [...history].reverse()]) {
+    const { players, totals } = calculateStats(roster, records, now);
+    assert.equal(players.a.currentStreak, 3);
+    assert.equal(players.b.currentStreak, 3);
+    assert.equal(players.absent.currentStreak, 0);
+    assert.equal(players.a.games, 4);
+    assert.equal(players.a.total, 4);
+    assert.equal(totals.games, 6);
+  }
+});
+test("absence respects historical scheduled-date transitions", () => {
+  for (const [attended, event, expected] of [
+    [["2026-08-11", "2026-08-13"], "2026-08-17", 2],
+    [["2026-08-11", "2026-08-13"], "2026-08-18", 0],
+    [["2026-08-13", "2026-08-18"], "2026-08-19", 0],
+    [["2026-09-02", "2026-09-03"], "2026-09-07", 2],
+    [["2026-09-02", "2026-09-03"], "2026-09-08", 2],
+    [["2026-09-02", "2026-09-03"], "2026-09-09", 0],
+    [["2026-09-09", "2026-09-10"], "2026-09-14", 0],
+  ]) {
+    const history = attended.map((date) => record(date, date));
+    history.push(record("miss", event, 1, { results: [] }));
+    assert.equal(
+      calculateStats(profiles, history, now).players.a.currentStreak,
+      expected,
+      event,
+    );
+  }
+});

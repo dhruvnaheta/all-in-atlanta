@@ -211,3 +211,95 @@ test("check-in enforces game state, duplicate attendance, and safe keys", () => 
     /Invalid/,
   );
 });
+
+test("registration rejects invalid contacts without creating a player or attendance", () => {
+  for (const admin of [false, true]) {
+    for (const contact of [
+      { email: "not-an-email" },
+      { phone: "abc" },
+      { email: "not-an-email", phone: "abc" },
+      { email: "a@@example.com" },
+      { email: "a".repeat(255) + "@example.com" },
+      { phone: "123" },
+      { phone: "1234567890123456" },
+      { phone: 4045550100 },
+      { email: null },
+    ]) {
+      const input = checkInState();
+      const before = structuredClone(input);
+      assert.throws(
+        () =>
+          applyCheckIn(
+            input,
+            {
+              action: "checkIn",
+              key: "bob",
+              profile: { dn: "Bob", ...contact },
+            },
+            new Date(),
+            { admin },
+          ),
+        /valid contact email|valid phone number/,
+      );
+      assert.deepEqual(input, before);
+    }
+  }
+});
+
+test("registration accepts optional contacts and formatted phone numbers", () => {
+  for (const contact of [
+    {},
+    { email: " ", phone: " " },
+    { email: " bob+league@example.com ", phone: " +1 (404) 555-0100 " },
+    { phone: "404-555-0100" },
+    { phone: "+44 20 7946 0958" },
+  ]) {
+    const result = applyCheckIn(checkInState(), {
+      action: "checkIn",
+      key: "bob",
+      profile: { dn: "Bob", ...contact },
+    });
+    assert.equal(result.players.bob.email, contact.email?.trim() || "");
+    assert.equal(result.players.bob.phone, contact.phone?.trim() || "");
+    assert.equal(result.tonight[0].key, "bob");
+  }
+});
+
+test("registration collapses whitespace and rejects noncanonical new keys", () => {
+  const input = checkInState();
+  const next = applyCheckIn(input, {
+    action: "checkIn",
+    key: "bob smith",
+    profile: { dn: "  Bob\t Smith\u00a0 " },
+  });
+  assert.equal(next.players["bob smith"].dn, "Bob Smith");
+  for (const key of ["bob  smith", " bob smith", "bob smith "]) {
+    assert.throws(
+      () =>
+        applyCheckIn(input, {
+          action: "checkIn",
+          key,
+          profile: { dn: key },
+        }),
+      /valid player name/,
+    );
+  }
+});
+
+test("legacy whitespace and renamed profiles cannot be recreated", () => {
+  const input = checkInState();
+  input.players["bob  smith"] = { key: "bob  smith", dn: "Robert  Smith" };
+  for (const dn of ["Bob Smith", "Robert Smith"]) {
+    assert.throws(
+      () =>
+        applyCheckIn(input, {
+          action: "checkIn",
+          key: dn.toLowerCase(),
+          profile: { dn },
+        }),
+      /already exists/,
+    );
+  }
+  const next = applyCheckIn(input, { action: "checkIn", key: "bob  smith" });
+  assert.equal(next.tonight[0].key, "bob  smith");
+});
