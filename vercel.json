@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/account{/}?",
+      "destination": "/admin/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin){/}?",
+      "destination": "/:page.html"
+    }
+  ]
+}
