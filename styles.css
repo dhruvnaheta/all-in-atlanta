@@ -2068,6 +2068,9 @@ footer {
 button[data-click][aria-busy="true"]::after {
   content: " · Saving…";
 }
+button[data-click="accountGoogleSignIn"][aria-busy="true"]::after {
+  content: " · Signing in…";
+}
 
 /* Personal player page: shared league colors, typography and cards. */
 .nav-account-btn {

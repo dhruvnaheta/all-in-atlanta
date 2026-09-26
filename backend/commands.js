@@ -219,6 +219,26 @@ export async function leagueCommand(db, request, now = new Date()) {
         contacts = await collection("playerContacts");
       const selected = (p) => p.id === playerId(request.key);
       for (const p of [...players, ...contacts].filter(selected)) remove(p);
+      const link = await tx.get(ref(`playerAccounts/${playerId(request.key)}`));
+      if (link.exists) remove(link);
+      for (const account of await collection("accounts")) {
+        const data = account.data();
+        if (data.playerKey === request.key)
+          set(`accounts/${account.id}`, {
+            playerKey: null,
+            playerIdentity: null,
+            playerCreatedAt: null,
+            status: "unlinked",
+            unlinkedAt: now.toISOString(),
+            unlinkReason: "player-deleted",
+          });
+        else if (data.status === "pending" && data.requestedKey === request.key)
+          set(`accounts/${account.id}`, {
+            status: "rejected",
+            reviewedAt: now.toISOString(),
+            rejectionReason: "player-deleted",
+          });
+      }
       const games = await collection("games");
       for (const g of games) {
         const participants = await collection(`games/${g.id}/participants`);

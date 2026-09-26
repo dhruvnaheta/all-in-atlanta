@@ -1,9 +1,12 @@
+import { renderPage } from "./seo-render.js";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const types = {
   ".html": "text/html",
+  ".xml": "application/xml",
+  ".txt": "text/plain",
   ".js": "text/javascript",
   ".css": "text/css",
   ".png": "image/png",
@@ -14,6 +17,7 @@ createServer(async (request, response) => {
     let path = decodeURIComponent(
       new URL(request.url, "http://localhost").pathname,
     ).replace(/^\/$/, "/index.html");
+    const page = path.split("/").filter(Boolean)[0] || "home";
     if (
       /^\/(about|rankings|games|rules|restrictions|tv|account)\/?$/.test(path)
     )
@@ -22,13 +26,21 @@ createServer(async (request, response) => {
     if (
       !file.startsWith(root + sep) ||
       path.includes("/.") ||
-      (!["/index.html", "/styles.css", "/preview.png"].includes(path) &&
+      (![
+        "/index.html",
+        "/styles.css",
+        "/preview.png",
+        "/robots.txt",
+        "/sitemap.xml",
+      ].includes(path) &&
         !/^\/(js|assets)\//.test(path))
     ) {
       response.writeHead(404).end();
       return;
     }
-    const body = await readFile(file);
+    let body = await readFile(file);
+    if (path === "/index.html")
+      body = renderPage(body.toString(), page === "index.html" ? "home" : page);
     response
       .writeHead(200, {
         "Content-Type": types[extname(file)] || "application/octet-stream",

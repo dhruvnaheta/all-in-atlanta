@@ -303,7 +303,9 @@ test("page links survive reload and browser history", async ({ page }) => {
   await page.locator("#nav-rankings").click();
   await expect(page).toHaveURL(/\/rankings\/$/);
   await page.locator("#nav-rules").click();
-  await expect(page).toHaveTitle("League Rules | All In Atlanta");
+  await expect(page).toHaveTitle(
+    "Texas Hold’em Poker League Rules | All In Atlanta",
+  );
   await page.goBack();
   await expect(page.locator("#page-rankings")).toBeVisible();
   await page.goForward();
@@ -429,7 +431,9 @@ test("public timer hides completed sessions, supports Escape and fits phones", a
   expect(exit.y + exit.height).toBeLessThanOrEqual(heading.y);
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/games\/$/);
-  await expect(page).toHaveTitle("Active Games | All In Atlanta");
+  await expect(page).toHaveTitle(
+    "Atlanta Poker Games & Weekly Schedule | All In Atlanta",
+  );
   await page.goto("/tv/");
   await page.evaluate(async () => {
     const { LS } = await import("/js/store.js");

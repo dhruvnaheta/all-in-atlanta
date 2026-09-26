@@ -1,3 +1,4 @@
+import { updateSEO } from "./seo.js";
 import { renderTVTimer, renderGamePage } from "./refresh.js";
 import { refreshToken } from "./auth.js";
 import { toast } from "./dom.js";
@@ -11,8 +12,6 @@ const pages = {
   tv: "Timer",
   account: "My Account",
 };
-const homeTitle =
-  "All In Atlanta — Free Poker League | 3 Weekly Games in Atlanta, GA";
 export function initializeNavigation() {
   const restore = () =>
     go(location.pathname.split("/").filter(Boolean)[0] || "home", {
@@ -47,7 +46,8 @@ document.addEventListener(
       document.getElementById("mobt-more").focus();
     }
   },
-  { capture: true },
+  // Modal capture handlers get first refusal, including while viewing the timer.
+  { capture: false },
 );
 document.addEventListener("click", (event) => {
   if (
@@ -63,20 +63,7 @@ export function go(page, { history = true } = {}) {
   const path = page === "home" ? "/" : `/${page}/`;
   if (history && location.pathname !== path)
     window.history.pushState(null, "", path);
-  document.title =
-    page === "home"
-      ? homeTitle
-      : page === "tv"
-        ? "Timer"
-        : `${pages[page]} | All In Atlanta`;
-  const url = `https://allinatlanta.com${path}`;
-  document.querySelector('link[rel="canonical"]').href = url;
-  document.querySelector('meta[property="og:url"]').content = url;
-  for (const selector of [
-    'meta[property="og:title"]',
-    'meta[name="twitter:title"]',
-  ])
-    document.querySelector(selector).content = document.title;
+  updateSEO(page);
   document
     .querySelectorAll('a[data-click="go"], a[data-click="openAccount"]')
     .forEach((link) => {

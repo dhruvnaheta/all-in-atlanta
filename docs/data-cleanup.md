@@ -1,5 +1,23 @@
 # September data cleanup
 
+## September 26 follow-up
+
+Public Firestore reads reconfirmed the August 13 fixture with 40 results,
+`5Paces` in series venues and game names, and 28 of 29 history records with
+`stopped: true` and no finishing placements. These records contain participation
+results; recovering finish points requires the actual finishing orders.
+
+The guarded cleanup was retried with Firebase CLI credentials and again returned
+`PERMISSION_DENIED` before any writes. Venue corrections also remain pending
+authorized database access. Functions deployment was attempted but failed its
+permission preflight: the signed-in account lacks `iam.serviceAccounts.ActAs` on
+`all-in-atlanta-pok@appspot.gserviceaccount.com` (Service Account User role).
+
+The live website still serves older admin code and returns 404 for `js/modal.js`.
+The branch's modal tests pass; publishing its frontend is necessary for the
+Escape fixes to reach the live site. Deploying functions alone does not publish
+the GitHub Pages frontend.
+
 Local UI changes sort league games and Recent Games by calendar date, newest
 first. Selected completed games display SELECTED rather than ACTIVE. Missing
 registration dates display Unknown; dates are not inferred from attendance.

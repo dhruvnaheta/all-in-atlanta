@@ -24,6 +24,32 @@ for (const mode of ["signin", "signup"]) {
     );
   });
 }
+test("Google popup shows Signing in while waiting and clears it after cancellation", async ({
+  page,
+}) => {
+  await page.locator("#nav-account").click();
+  await page.evaluate(async () => {
+    const { configureAuth } = await import("/js/auth.js");
+    configureAuth({
+      signInWithGoogle: () =>
+        new Promise((resolve, reject) => {
+          window.cancelGoogle = () =>
+            reject(
+              Object.assign(new Error(), { code: "auth/popup-closed-by-user" }),
+            );
+        }),
+    });
+  });
+  const button = page.locator('[data-click="accountGoogleSignIn"]');
+  await button.click();
+  await expect(button).toHaveAttribute("aria-busy", "true");
+  expect(
+    await button.evaluate((el) => getComputedStyle(el, "::after").content),
+  ).toContain("Signing in…");
+  await page.evaluate(() => window.cancelGoogle());
+  await expect(button).toBeEnabled();
+  await expect(button).not.toHaveAttribute("aria-busy", "true");
+});
 test("Google popup errors preserve credentials and allow retry", async ({
   page,
 }) => {

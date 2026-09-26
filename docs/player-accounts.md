@@ -35,7 +35,9 @@ use a transactionally maintained normalized email index. Deploy the updated
 - The `managePlayerAccount` callable handles requests, approval, rejection,
   sanitized private profile reads, profile updates, and personal check-in.
   Personal check-in resolves the player from the authenticated UID, ignoring any
-  supplied player key. Existing guest check-in remains a separate public flow.
+  supplied player key. Ownership validation and attendance writes share one
+  transaction, so concurrent unlinking, deletion, or merging cannot use stale
+  ownership. Existing guest check-in remains a separate public flow.
 - Players may edit display name, contact email and phone. The stable player key,
   point totals, results, admin notes and roles cannot be edited through account
   settings. Contact email and Firebase sign-in email are separate.
@@ -51,14 +53,21 @@ totals, backfill history, or modify scoring. Recent results use that view model'
 count recorded wins and top-eight finishes, never invented lower placements.
 Streaks follow the shared league schedule and five-game cycle rules.
 
-A linked player whose profile has been deleted sees an unavailable-profile message;
-self check-in refuses to recreate it. Links also bind to the profile document's
+Links bind to the profile document's
 creation timestamp (or a generated identity version for new profiles), so deleting
-and recreating the same name does not transfer
-ownership to a different person. Account unlinking/reassignment is deliberately
-not a self-service action. When deleting/replacing player identities or doing a full
-league wipe, include the new account mappings in the administrator's data plan so
-an old mapping cannot be reused for a different person with the same legacy key.
+and recreating the same name does not transfer ownership to a different person.
+The administrator's delete-player operation atomically clears linked accounts,
+removes the reverse ownership mapping, and rejects pending requests for that key.
+Affected users can submit a new claim. Direct maintenance deletions and full league
+wipes must still include account mappings in their data plan; stale links fail
+identity validation and personal check-in never recreates a missing profile.
+
+Requests for existing players store `requestedPlayerCreatedAt`. Approval and
+auto-linking of pending requests require the same profile creation timestamp.
+Merging players transfers valid pending requests to the target identity. Older
+pending requests without this binding must be rejected and resubmitted; requests
+to create a new player still require that the name remain unused at approval.
+Deploy both `managePlayerAccount` and `manageLeague` for these lifecycle changes.
 
 ## Release
 

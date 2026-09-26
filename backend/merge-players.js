@@ -120,10 +120,16 @@ export async function mergePlayers(tx, ref, collection, set, remove, request) {
         playerCreatedAt: target.createTime,
       });
     }
-    if (data.requestedKey === sourceKey)
+    if (
+      data.status === "pending" &&
+      !data.newPlayer &&
+      data.requestedKey === sourceKey &&
+      data.requestedPlayerCreatedAt?.isEqual(source.createTime)
+    )
       set(`accounts/${account.id}`, {
         requestedKey: targetKey,
         requestedName: name,
+        requestedPlayerCreatedAt: target.createTime,
         newPlayer: false,
       });
   }

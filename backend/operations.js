@@ -110,8 +110,16 @@ export async function savePatches(db, request) {
     return { saved: true };
   });
 }
-export async function checkIn(
+export async function checkIn(db, request, now = new Date(), options = {}) {
+  return db.runTransaction((tx) =>
+    checkInTransaction(db, tx, request, now, options),
+  );
+}
+
+// Callers can validate account ownership in the same transaction as attendance.
+export async function checkInTransaction(
   db,
+  tx,
   request,
   now = new Date(),
   { admin = false } = {},
@@ -128,51 +136,50 @@ export async function checkIn(
     ["__proto__", "constructor", "prototype"].includes(request.key)
   )
     throw new Error("Invalid player.");
-  return db.runTransaction(async (tx) => {
-    await writable(db, tx);
-    const current = await tx.get(db.doc(`${LEAGUE_PATH}/settings/current`));
-    if (current.data()?.activeGameId !== request.gameId)
-      throw new Error("The active game changed. Please try again.");
-    const gameRef = db.doc(`${LEAGUE_PATH}/games/${safeId(request.gameId)}`);
-    const profileRef = db.doc(
-      `${LEAGUE_PATH}/players/${playerId(request.key)}`,
+  await writable(db, tx);
+  const current = await tx.get(db.doc(`${LEAGUE_PATH}/settings/current`));
+  if (current.data()?.activeGameId !== request.gameId)
+    throw new Error("The active game changed. Please try again.");
+  const gameRef = db.doc(`${LEAGUE_PATH}/games/${safeId(request.gameId)}`);
+  const profileRef = db.doc(`${LEAGUE_PATH}/players/${playerId(request.key)}`);
+  const participantRef = gameRef
+    .collection("participants")
+    .doc(playerId(request.key));
+  const [gameSnapshot, profileSnapshot, participantSnapshot] = await tx.getAll(
+    gameRef,
+    profileRef,
+    participantRef,
+  );
+  if (!gameSnapshot.exists || gameSnapshot.data().finalized)
+    throw new Error("This game is not open.");
+  const game = {
+    ...gameSnapshot.data(),
+    tonight: participantSnapshot.data()?.checkIn
+      ? [participantSnapshot.data().checkIn]
+      : [],
+  };
+  const state = {
+    activeGameId: game.id,
+    gameList: [game],
+    players: profileSnapshot.exists
+      ? { [request.key]: profileSnapshot.data() }
+      : {},
+  };
+  const next = applyCheckIn(state, request, now, { admin });
+  if (!profileSnapshot.exists && next.players[request.key]) {
+    const { profile, contact } = splitPlayer(next.players[request.key]);
+    tx.create(profileRef, profileOnly(profile));
+    tx.create(
+      db.doc(`${LEAGUE_PATH}/playerContacts/${playerId(request.key)}`),
+      contact,
     );
-    const participantRef = gameRef
-      .collection("participants")
-      .doc(playerId(request.key));
-    const [gameSnapshot, profileSnapshot, participantSnapshot] =
-      await tx.getAll(gameRef, profileRef, participantRef);
-    if (!gameSnapshot.exists || gameSnapshot.data().finalized)
-      throw new Error("This game is not open.");
-    const game = {
-      ...gameSnapshot.data(),
-      tonight: participantSnapshot.data()?.checkIn
-        ? [participantSnapshot.data().checkIn]
-        : [],
-    };
-    const state = {
-      activeGameId: game.id,
-      gameList: [game],
-      players: profileSnapshot.exists
-        ? { [request.key]: profileSnapshot.data() }
-        : {},
-    };
-    const next = applyCheckIn(state, request, now, { admin });
-    if (!profileSnapshot.exists && next.players[request.key]) {
-      const { profile, contact } = splitPlayer(next.players[request.key]);
-      tx.create(profileRef, profileOnly(profile));
-      tx.create(
-        db.doc(`${LEAGUE_PATH}/playerContacts/${playerId(request.key)}`),
-        contact,
-      );
-    }
-    tx.set(
-      participantRef,
-      { key: request.key, checkIn: next.tonight[0] || null },
-      { merge: true },
-    );
-    return { saved: true };
-  });
+  }
+  tx.set(
+    participantRef,
+    { key: request.key, checkIn: next.tonight[0] || null },
+    { merge: true },
+  );
+  return { saved: true };
 }
 export async function finalizeGame(db, request, now = new Date()) {
   if (!request || typeof request.gameId !== "string")

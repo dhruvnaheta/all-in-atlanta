@@ -108,3 +108,29 @@ empty timer, Escape navigation, 375px Exit layout, and optional-purchase wording
 also passed. The scoped production release passed all 11 browser tests and 29
 unit tests before publication. Account-feature code remains on the separate
 `carl/refactor` branch.
+
+## Search metadata
+
+Edit page titles and descriptions in `js/seo.js`, then run `npm run seo:generate`.
+Commit the generated root HTML route files, `index.html`, `sitemap.xml`, and
+`robots.txt`. GitHub Pages still uses its existing Jekyll build; no new build
+service is required. `npm run seo:check` detects stale generated files.
+
+The same metadata updates during browser navigation. Route templates select the
+correct visible page before JavaScript starts, and the preview server renders
+matching HTML. Account and timer pages use `noindex, follow` and are omitted
+from the sitemap. They remain crawlable so search engines can read that directive.
+
+Search spot checks on September 26, 2026 covered “atlanta poker”, “atlanta poker
+games tournaments”, “free poker atlanta thursday poker league”, and
+“site:allinatlanta.com”. The homepage appeared with an older Thursday-only title;
+related results emphasized free Texas Hold’em, leagues, venues, and schedules.
+These observations informed the copy; they are not a reproducible Google rank
+measurement. No traffic or ranking improvement has been measured yet.
+
+After publishing, submit https://allinatlanta.com/sitemap.xml in Google Search
+Console, inspect the main public URLs, and compare impressions, clicks, and
+queries after recrawling. Titles and a sitemap help discovery and interpretation,
+but do not guarantee rankings or indexing. Reference:
+https://developers.google.com/search/docs/appearance/title-link and
+https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview.

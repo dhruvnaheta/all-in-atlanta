@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { LEAGUE_PATH, playerId } from "../js/schema.js";
-import { checkIn } from "./operations.js";
+import { checkInTransaction } from "./operations.js";
 
 const clean = (value, max = 120) => {
   if (typeof value !== "string" || value.trim().length > max)
@@ -30,7 +30,28 @@ export async function playerAccount(db, request, now = new Date(), auth) {
   const admin = auth.token?.admin === true;
   const ref = (path) => db.doc(`${LEAGUE_PATH}/${path}`);
   const ownRef = ref(`accounts/${encodeURIComponent(auth.uid)}`);
-  if (action === "profile" || action === "checkIn") {
+  if (action === "checkIn") {
+    return db.runTransaction(async (tx) => {
+      const account = (await tx.get(ownRef)).data();
+      if (!account?.playerKey)
+        throw new Error("Your player profile is not linked yet.");
+      const key = validKey(account.playerKey);
+      const player = await tx.get(ref(`players/${playerId(key)}`));
+      if (!isLinkedProfile(account, player))
+        throw new Error(
+          "Your player profile is unavailable. Please contact an admin.",
+        );
+      // Resolve the player from the account, never from caller-supplied input.
+      return checkInTransaction(
+        db,
+        tx,
+        { action: "checkIn", gameId: request.gameId, key },
+        now,
+        { admin },
+      );
+    });
+  }
+  if (action === "profile") {
     const account = (await ownRef.get()).data();
     if (!account?.playerKey)
       throw new Error("Your player profile is not linked yet.");
@@ -40,15 +61,6 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       throw new Error(
         "Your player profile is unavailable. Please contact an admin.",
       );
-    if (action === "checkIn") {
-      // Never accept a caller-supplied player key for personal check-in.
-      return checkIn(
-        db,
-        { action: "checkIn", gameId: request.gameId, key },
-        now,
-        { admin },
-      );
-    }
     const contact =
       (await ref(`playerContacts/${playerId(key)}`).get()).data() || {};
     return {
@@ -90,7 +102,9 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       if (playerId(key) !== id) return { linked: false };
       if (
         current?.status === "pending" &&
-        (current.newPlayer || current.requestedKey !== key)
+        (current.newPlayer ||
+          current.requestedKey !== key ||
+          !current.requestedPlayerCreatedAt?.isEqual(profile.createTime))
       )
         return { linked: false };
       const linkRef = ref(`playerAccounts/${id}`);
@@ -140,6 +154,7 @@ export async function playerAccount(db, request, now = new Date(), auth) {
         requestedKey: key,
         requestedName: newName || profile.data().dn || key,
         newPlayer: !!newName,
+        ...(!newName ? { requestedPlayerCreatedAt: profile.createTime } : {}),
         requestedAt: now.toISOString(),
       });
       return { saved: true };
@@ -173,6 +188,14 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       if (!account.newPlayer && !profile.exists)
         throw new Error(
           "This player no longer exists. Reject this request and ask the player to try again.",
+        );
+      // Older requests lack an identity binding and must be submitted again.
+      if (
+        !account.newPlayer &&
+        !account.requestedPlayerCreatedAt?.isEqual(profile.createTime)
+      )
+        throw new Error(
+          "The player identity changed or this request predates identity verification. Reject it and ask the player to submit a new request.",
         );
       const playerIdentity = profile.exists ? null : randomUUID();
       if (!profile.exists) {
