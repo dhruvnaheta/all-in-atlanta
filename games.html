@@ -1,0 +1,5 @@
+---
+permalink: /games/
+---
+{% capture app %}{% include_relative index.html %}{% endcapture %}
+{{ app | replace: "All In Atlanta — Free Poker League | Every Thursday in Atlanta, GA", "Active Games | All In Atlanta" | replace: 'https://allinatlanta.com/"', 'https://allinatlanta.com/games/"' }}

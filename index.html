@@ -100,7 +100,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <!-- ADMIN OVERLAY -->
@@ -119,9 +119,9 @@
     <!-- NAV -->
     <nav>
       <div class="nav-inner">
-        <div class="nav-logo" data-click="go" data-arg0="home">
+        <a href="/" class="nav-logo" data-click="go" data-arg0="home">
           <img
-            src="assets/logo.png"
+            src="/assets/logo.png"
             alt="All In Atlanta"
             style="
               height: 48px;
@@ -133,57 +133,64 @@
           <div class="logo-text">
             All In Atlanta<span class="logo-sub">Poker League</span>
           </div>
-        </div>
+        </a>
         <div class="nav-links">
-          <button
+          <a
+            href="/"
             class="nav-link active"
             data-click="go"
             data-arg0="home"
             id="nav-home"
           >
             Home
-          </button>
-          <button
+          </a>
+          <a
+            href="/about/"
             class="nav-link"
             data-click="go"
             data-arg0="about"
             id="nav-about"
           >
             About
-          </button>
-          <button
+          </a>
+          <a
+            href="/rankings/"
             class="nav-link"
             data-click="go"
             data-arg0="rankings"
             id="nav-rankings"
           >
             Rankings
-          </button>
-          <button
+          </a>
+          <a
+            href="/games/"
             class="nav-link"
             data-click="go"
             data-arg0="games"
             id="nav-games"
           >
             Active Games
-          </button>
-          <button
+          </a>
+          <a
+            href="/rules/"
             class="nav-link"
             data-click="go"
             data-arg0="rules"
             id="nav-rules"
           >
             Rules
-          </button>
-          <button
+          </a>
+          <a
+            href="/restrictions/"
             class="nav-link"
             data-click="go"
             data-arg0="restrictions"
             id="nav-restrictions"
           >
             Tournament Rules &amp; Restrictions
-          </button>
-          <button
+          </a>
+          <a
+            href="/tv/"
             class="nav-link"
             data-click="go"
             data-arg0="tv"
@@ -191,7 +198,7 @@
             style="color: var(--gold-l)"
           >
             📺 Timer
-          </button>
+          </a>
         </div>
         <button
           class="nav-admin-btn btn"
@@ -206,49 +213,60 @@
     <!-- Mobile bottom tab bar -->
     <div class="mob-tabs" id="mobTabs">
       <div class="mob-tabs-inner">
-        <button
+        <a
+          href="/"
           class="mob-tab active"
           id="mobt-home"
           data-click="go"
           data-arg0="home"
         >
           <span class="tab-icon">🏠</span>Home
-        </button>
-        <button
+        </a>
+        <a
+          href="/rankings/"
           class="mob-tab"
           id="mobt-rankings"
           data-click="go"
           data-arg0="rankings"
         >
           <span class="tab-icon">🏆</span>Rankings
-        </button>
-        <button
+        </a>
+        <a
+          href="/games/"
           class="mob-tab"
           id="mobt-games"
           data-click="go"
           data-arg0="games"
         >
           <span class="tab-icon">♠️</span>Games
-        </button>
-        <button
+        </a>
+        <a
+          href="/rules/"
           class="mob-tab"
           id="mobt-rules"
           data-click="go"
           data-arg0="rules"
         >
           <span class="tab-icon">📋</span>Rules
-        </button>
-        <button
+        </a>
+        <a
+          href="/restrictions/"
           class="mob-tab"
           id="mobt-restrictions"
           data-click="go"
           data-arg0="restrictions"
         >
           <span class="tab-icon">⚖️</span>Restrictions
-        </button>
-        <button class="mob-tab" id="mobt-tv" data-click="go" data-arg0="tv">
+        </a>
+        <a
+          href="/tv/"
+          class="mob-tab"
+          id="mobt-tv"
+          data-click="go"
+          data-arg0="tv"
+        >
           <span class="tab-icon">📺</span>Timer
-        </button>
+        </a>
         <button
           class="mob-tab mob-tab-admin"
           id="mobt-admin"
@@ -265,7 +283,7 @@
         <div class="home-hero-inner">
           <img
             class="home-hero-logo"
-            src="assets/logo.png"
+            src="/assets/logo.png"
             id="homeHeroLogo"
             alt="All In Atlanta Poker League"
           />
@@ -273,16 +291,22 @@
           <h1>All In <span class="gold">Atlanta</span></h1>
           <p class="home-hero-copy">Atlanta's free-to-play poker league.</p>
           <div class="home-hero-actions">
-            <button class="btn btn-gold" data-click="go" data-arg0="games">
+            <a
+              href="/games/"
+              class="btn btn-gold"
+              data-click="go"
+              data-arg0="games"
+            >
               Register for Tonight
-            </button>
-            <button
+            </a>
+            <a
+              href="/rankings/"
               class="btn home-hero-outline"
               data-click="go"
               data-arg0="rankings"
             >
               View Rankings
-            </button>
+            </a>
           </div>
         </div>
       </section>
@@ -336,13 +360,14 @@
               <div class="sec-tag">Leaderboard</div>
               <div class="sec-title">Top <span>Players</span></div>
             </div>
-            <button
+            <a
+              href="/rankings/"
               class="btn btn-green-sm"
               data-click="go"
               data-arg0="rankings"
             >
               Full Rankings →
-            </button>
+            </a>
           </div>
           <div
             class="card"
@@ -718,13 +743,14 @@
       <div class="container">
         <div class="section">
           <div style="margin-bottom: 18px">
-            <button
+            <a
+              href="/restrictions/"
               class="btn btn-gold-sm"
               data-click="go"
               data-arg0="restrictions"
             >
               View Tournament Rules &amp; Restrictions →
-            </button>
+            </a>
           </div>
           <div class="rules-nav">
             <button
@@ -763,8 +789,8 @@
                   duration of play.
                 </li>
                 <li>
-                  Please purchase at least one item from the venue as courtesy
-                  to our hosting partners.
+                  No purchase is required to play. If you choose to buy
+                  something, it is a courtesy to our hosting partners.
                 </li>
               </ul>
             </div>
@@ -1260,13 +1286,31 @@
           <div class="fcol">
             <h4>Navigate</h4>
             <ul>
-              <li data-click="go" data-arg0="home">Home</li>
-              <li data-click="go" data-arg0="about">About</li>
-              <li data-click="go" data-arg0="rankings">Rankings</li>
-              <li data-click="go" data-arg0="games">Active Games</li>
-              <li data-click="go" data-arg0="rules">Rules</li>
-              <li data-click="go" data-arg0="restrictions">
-                Tournament Rules &amp; Restrictions
+              <li><a href="/" data-click="go" data-arg0="home">Home</a></li>
+              <li>
+                <a href="/about/" data-click="go" data-arg0="about">About</a>
+              </li>
+              <li>
+                <a href="/rankings/" data-click="go" data-arg0="rankings"
+                  >Rankings</a
+                >
+              </li>
+              <li>
+                <a href="/games/" data-click="go" data-arg0="games"
+                  >Active Games</a
+                >
+              </li>
+              <li>
+                <a href="/rules/" data-click="go" data-arg0="rules">Rules</a>
+              </li>
+              <li>
+                <a
+                  href="/restrictions/"
+                  data-click="go"
+                  data-arg0="restrictions"
+                >
+                  Tournament Rules &amp; Restrictions
+                </a>
               </li>
             </ul>
           </div>
@@ -1289,6 +1333,6 @@
       </div>
     </footer>
 
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="/js/main.js"></script>
   </body>
 </html>

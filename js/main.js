@@ -9,7 +9,7 @@ import { toast, closeEditPlayer } from "./dom.js";
 import { isAdmin, subscribeAuth } from "./auth.js";
 
 import { closeAdmin, openAdmin } from "./views/admin.js";
-import { go, sR } from "./navigation.js";
+import { go, sR, initializeNavigation } from "./navigation.js";
 import { setRankSeriesFilter } from "./views/rankings.js";
 import {
   pubSearch,
@@ -106,12 +106,22 @@ export function scheduleRefresh(keys) {
       clearPrivateDrafts();
       document.getElementById("editPlayerOverlay")?.remove();
     }
-    if (has("players", "history", "gameList", "seriesList", "activeGameId", "attendance"))
+    if (
+      has(
+        "players",
+        "history",
+        "gameList",
+        "seriesList",
+        "activeGameId",
+        "attendance",
+      )
+    )
       drawGames();
     if (has("players", "history", "seriesList")) drawRankings();
     if (has("players", "history", "attendance")) drawStats();
     if (has("seriesList")) drawSchedule();
-    if (has("timerState", "levelOverrides", "activeGameId")) syncTimer();
+    if (has("timerState", "levelOverrides", "activeGameId", "gameList"))
+      syncTimer();
     if (
       isAdmin() &&
       document.getElementById("adminOverlay").classList.contains("open") &&
@@ -225,6 +235,7 @@ for (const [name, handler] of Object.entries(actions)) {
 bindActions(actions);
 
 renderAll();
+initializeNavigation();
 initializeFirebase((error) =>
   toast("Live updates are unavailable. " + error.message),
 )

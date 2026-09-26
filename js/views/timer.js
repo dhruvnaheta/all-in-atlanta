@@ -19,10 +19,24 @@ export function renderTimerUI() {
   const tcTime = document.getElementById("tc-time");
   const tcProg = document.getElementById("tc-prog");
   if (tcInfo) _updateAdminTimerCtrl(tcInfo, tcTime, tcProg);
-  const state=getTimerState();
-  const button=document.querySelector('[data-click="adminTimerPause"], [data-click="adminTimerResume"]');
-  if(button){button.dataset.click=state.running?'adminTimerPause':'adminTimerResume';button.textContent=state.running?'⏸ Pause':'▶ Resume Timer';}
-  const sub=document.querySelector('.timer-ctrl-sub');if(sub)sub.textContent='Level '+(state.levelIdx+1)+' of '+BLIND_LEVELS.length+(state.running?'':' · PAUSED');
+  const state = getTimerState();
+  const button = document.querySelector(
+    '[data-click="adminTimerPause"], [data-click="adminTimerResume"]',
+  );
+  if (button) {
+    button.dataset.click = state.running
+      ? "adminTimerPause"
+      : "adminTimerResume";
+    button.textContent = state.running ? "⏸ Pause" : "▶ Resume Timer";
+  }
+  const sub = document.querySelector(".timer-ctrl-sub");
+  if (sub)
+    sub.textContent =
+      "Level " +
+      (state.levelIdx + 1) +
+      " of " +
+      BLIND_LEVELS.length +
+      (state.running ? "" : " · PAUSED");
   // Update level jumper active state
   document.querySelectorAll(".ljbtn").forEach((btn) => {
     const idx = parseInt(btn.dataset.idx);
@@ -106,6 +120,13 @@ export function _renderClockEl(el, isAdmin) {
 export function renderTVTimer() {
   const el = document.getElementById("tvTimerContent");
   if (!el) return;
+  const activeGame = getActiveGame();
+  const exit =
+    '<div class="tv-toolbar"><a class="tv-exit" href="/games/" data-click="go" data-arg0="games">Exit timer</a></div>';
+  if (activeGame?.status !== "running") {
+    el.innerHTML = `${exit}<h1 class="tv-heading">No live game</h1><p class="tv-empty">The public timer will appear here when a game starts.</p>`;
+    return;
+  }
   const ts = getTimerState();
   const level =
     BLIND_LEVELS[ts.levelIdx] || BLIND_LEVELS[BLIND_LEVELS.length - 1];
@@ -132,10 +153,10 @@ export function renderTVTimer() {
       ? "Break"
       : nextLevel.label
     : "Final Level";
-  const activeGame = getActiveGame();
   const gameLabel = activeGame ? activeGame.name : "All In Atlanta";
   el.innerHTML = `
-    <div style="color:rgba(255,255,255,.4);font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px">
+    ${exit}
+    <div class="tv-heading" style="color:rgba(255,255,255,.4);font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px">
       ${esc(gameLabel)} &nbsp;·&nbsp; LEVEL ${ts.levelIdx + 1}${isPaused ? " &nbsp;·&nbsp; PAUSED" : ""}
     </div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:clamp(60px,14vw,160px);color:${timeColor};line-height:1;letter-spacing:-2px;transition:color .3s">
@@ -150,7 +171,6 @@ export function renderTVTimer() {
     <div style="color:rgba(255,255,255,.45);font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,3vw,28px);letter-spacing:2px;margin-top:8px">
       UP NEXT &nbsp; <span style="color:rgba(255,255,255,.75);font-weight:600">${nextLabel}</span>
     </div>
-    <button data-click="go" data-arg0="games" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);padding:8px 16px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .15s">EXIT</button>
   `;
 }
 
