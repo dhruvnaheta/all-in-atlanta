@@ -5,6 +5,7 @@ let state = {
   profile: null,
   requests: [],
   owners: [],
+  claimedKeys: [],
   error: null,
 };
 let command;
@@ -25,6 +26,7 @@ export function clearAccount() {
     profile: null,
     requests: [],
     owners: [],
+    claimedKeys: [],
     error: null,
   });
 }

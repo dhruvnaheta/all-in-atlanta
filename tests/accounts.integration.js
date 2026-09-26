@@ -368,3 +368,66 @@ test("new account profiles normalize spacing and reject legacy duplicates", asyn
     /created since the request/,
   );
 });
+
+test("profile availability exposes only claimed keys and reflects unlinking", async () => {
+  await link();
+  assert.deepEqual(await call("bob", { action: "claimedProfiles" }), {
+    claimedKeys: ["alice"],
+  });
+  await call(
+    "admin",
+    { action: "unlink", uid: "alice", playerKey: "alice" },
+    true,
+  );
+  assert.deepEqual(await call("bob", { action: "claimedProfiles" }), {
+    claimedKeys: [],
+  });
+});
+
+test("pending requests can be changed and cancelled only by their owner", async () => {
+  await call("alice", { action: "requestLink", playerKey: "alice" });
+  await call("alice", { action: "requestLink", newName: "Another Player" });
+  let account = (await db.doc(`${root}/accounts/alice`).get()).data();
+  assert.equal(account.requestedKey, "another player");
+  assert.equal(account.newPlayer, true);
+  assert.equal(account.requestedPlayerCreatedAt, undefined);
+  await call("alice", { action: "requestLink", playerKey: "bob" });
+  account = (await db.doc(`${root}/accounts/alice`).get()).data();
+  assert.equal(account.requestedKey, "bob");
+  assert.equal(account.newPlayer, false);
+  assert.ok(account.requestedPlayerCreatedAt);
+  await assert.rejects(
+    call("other", { action: "cancelRequest", uid: "alice" }),
+    /already been handled/,
+  );
+  await call("alice", { action: "cancelRequest" });
+  account = (await db.doc(`${root}/accounts/alice`).get()).data();
+  assert.equal(account.status, "cancelled");
+  assert.equal(account.requestedKey, undefined);
+  await assert.rejects(
+    call("admin", { action: "approveLink", uid: "alice" }, true),
+    /already been handled/,
+  );
+  await link();
+  await assert.rejects(
+    call("alice", { action: "cancelRequest" }),
+    /already been handled/,
+  );
+  await assert.rejects(
+    call("alice", { action: "requestLink", playerKey: "bob" }),
+    /already has/,
+  );
+});
+
+test("invalid replacement preserves the pending request", async () => {
+  await link("bob", "bob");
+  await call("alice", { action: "requestLink", playerKey: "alice" });
+  await assert.rejects(
+    call("alice", { action: "requestLink", playerKey: "bob" }),
+    /already linked/,
+  );
+  assert.equal(
+    (await db.doc(`${root}/accounts/alice`).get()).data().requestedKey,
+    "alice",
+  );
+});

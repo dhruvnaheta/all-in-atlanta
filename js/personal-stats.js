@@ -9,7 +9,7 @@ export function standing(players, key, field = "total", seriesId) {
   return {
     points: mine?.pts || 0,
     rank: mine?.rank || null,
-    gap: above.length ? Math.min(...above.map((row) => row.pts)) - mine.pts : 0,
+    gap: above.length ? Math.min(...above.map((row) => row.pts)) - (mine?.pts || 0) : 0,
   };
 }
 export function personalStats(players, key) {

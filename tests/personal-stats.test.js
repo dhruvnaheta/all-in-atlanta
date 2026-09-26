@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { personalStats, standing } from "../js/personal-stats.js";
+test("personal stats load for zero-point players when others have points", () => {
+  for (const total of [0, 100]) {
+    const players = {
+      alice: { total, month: 0 },
+      bob: { total: 200, month: 20 },
+      carl: { total: 150, month: 10 },
+    };
+    const stats = personalStats(players, "alice");
+    assert.deepEqual(stats.monthly, { points: 0, rank: null, gap: 10 });
+    assert.deepEqual(
+      stats.allTime,
+      total === 0
+        ? { points: 0, rank: null, gap: 150 }
+        : { points: 100, rank: 3, gap: 50 },
+    );
+  }
+});
 test("personal stats preserve repaired totals, tie ranks and incomplete history", () => {
   const players = {
     alice: {

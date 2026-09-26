@@ -64,23 +64,30 @@ function signedOut() {
 function onboarding(user, account) {
   if (!user.emailVerified)
     return `<section class="card account-panel"><h2>Verify your email</h2><p>We sent a verification link to <strong>${esc(user.email)}</strong>. Verify your email to connect your player profile.</p><p>Can’t find it? Check your spam folder and mark the email as “Not spam.”</p><div class="account-actions"><button class="btn btn-green" data-click="accountRefreshUser">I’ve verified my email</button><button class="btn btn-ghost" data-click="accountVerifyEmail">Resend email</button></div></section>`;
-  if (account?.status === "pending")
-    return `<section class="card account-panel"><span class="personal-label">Profile request sent</span><h2>You’re almost in, ${esc(account.requestedName)}.</h2><p>An admin will confirm your player profile. Your stats will appear here as soon as it’s approved.</p></section>`;
+  const pending = account?.status === "pending";
+  const pendingMessage = pending
+    ? `<section class="card account-panel"><span class="personal-label">Profile request sent</span><h2>You’re almost in, ${esc(account.requestedName)}.</h2><p>An admin will confirm your player profile. Your stats will appear here as soon as it’s approved.</p><button class="btn btn-ghost" data-click="accountCancelRequest">Cancel request</button></section>`
+    : "";
   const selectedKey = document.getElementById("accountPlayerKey")?.value || "";
   const newName = document.getElementById("accountNewName")?.value || "";
   const query = document.getElementById("accountPlayerSearch")?.value || "";
-  const options = searchPlayers(getPlayers(), query);
-  return `<section class="card account-panel"><h2>Connect your player profile</h2><p>Choose the name you play under. An admin will confirm the match so your results stay with you.</p>${account?.status === "rejected" ? '<p class="account-message">Your previous request wasn’t approved. Check with an admin or choose the correct profile below.</p>' : ""}
+  const options = availableProfiles(query);
+  return `${pendingMessage}${pending ? '<details class="card account-panel"><summary>Change request</summary>' : ""}<section class="card account-panel"><h2>Connect your player profile</h2><p>Choose the name you play under. An admin will confirm the match so your results stay with you.</p>${account?.status === "rejected" ? `<p class="account-message">Your previous request wasn’t approved. ${esc(account.reviewReason || "Check with an admin or choose the correct profile below.")}</p>` : ""}
     <form id="accountLinkForm" data-submit="accountRequestLink">
       ${field("accountPlayerSearch", "Search existing profiles", query, "search", 'autocomplete="off" data-input="accountSearchProfiles" aria-controls="accountPlayerKey"')}
+      <button class="btn btn-ghost" type="button" data-click="accountRefreshProfiles">Refresh profiles</button>
       <p id="accountSearchCount" class="account-muted" role="status">${options.length} profiles found</p>
       <label class="account-field" for="accountPlayerKey">Existing player<select id="accountPlayerKey" size="5" aria-describedby="accountProfileHelp">${profileOptions(options, selectedKey)}</select></label>
       <p id="accountProfileHelp" class="account-muted">Choose your usual profile to keep your points together. If several names are yours, ask an admin to review them before requesting a new profile.</p>
       <p class="account-muted">New to the league? Leave the selection empty and enter your player name.</p>
       ${field("accountNewName", "New player name", newName, "text", 'autocomplete="name" maxlength="120" data-input="accountNewName"')}
       <div id="accountNameMatches" data-preserve aria-live="polite"></div>
-      <button class="btn btn-green" type="submit">Request profile approval</button>
-    </form></section>`;
+      <button class="btn btn-green" type="submit">${pending ? "Update request" : "Request profile approval"}</button>
+    </form></section>${pending ? "</details>" : ""}`;
+}
+function availableProfiles(query) {
+  const claimed = new Set(getAccountState().claimedKeys);
+  return searchPlayers(getPlayers(), query).filter((p) => !claimed.has(p.key));
 }
 function profileOptions(players, selectedKey = "") {
   return (
@@ -93,9 +100,14 @@ function profileOptions(players, selectedKey = "") {
       .join("")
   );
 }
+export async function refreshAccountProfiles() {
+  const user = currentUser();
+  const { claimedKeys } = await accountCommand({ action: "claimedProfiles" });
+  if (currentUser() === user) updateAccount({ claimedKeys });
+}
 export function searchAccountProfiles() {
   const query = document.getElementById("accountPlayerSearch").value;
-  const options = searchPlayers(getPlayers(), query);
+  const options = availableProfiles(query);
   const select = document.getElementById("accountPlayerKey");
   select.innerHTML = profileOptions(
     options,
@@ -321,6 +333,10 @@ export async function requestAccountLink() {
   await accountCommand({ action: "requestLink", playerKey, newName });
   toast("Profile request sent to the admins.");
 }
+export async function cancelAccountRequest() {
+  await accountCommand({ action: "cancelRequest" });
+  toast("Profile request cancelled.");
+}
 export async function saveAccountProfile() {
   const uid = currentUser()?.uid;
   const profile = {
@@ -396,6 +412,7 @@ export function reviewAccount(uid, approve) {
       await accountCommand({
         action: approve ? "approveLink" : "rejectLink",
         uid,
+        requestedAt: request.requestedAt,
       });
       toast(approve ? "Player account linked." : "Request declined.");
     },

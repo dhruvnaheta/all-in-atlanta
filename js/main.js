@@ -6,7 +6,9 @@ import {
   authenticateAccount,
   authenticateWithGoogle,
   requestAccountLink,
+  cancelAccountRequest,
   searchAccountProfiles,
+  refreshAccountProfiles,
   checkAccountName,
   saveAccountProfile,
   personalCheckIn,
@@ -195,6 +197,7 @@ bindDrafts();
 export const actions = {
   toggleMobileMenu,
   accountSearchProfiles: () => searchAccountProfiles(),
+  accountRefreshProfiles: () => refreshAccountProfiles(),
   accountNewName: () => checkAccountName(),
   openAccount: () => {
     closeAdmin();
@@ -211,6 +214,7 @@ export const actions = {
   accountAuthenticate: (element) => authenticateAccount(element),
   accountGoogleSignIn: (element) => authenticateWithGoogle(element),
   accountRequestLink: () => requestAccountLink(),
+  accountCancelRequest: () => cancelAccountRequest(),
   accountSaveProfile: () => saveAccountProfile(),
   accountCheckIn: () => personalCheckIn(),
   accountSignOut: () => accountSignOut(),

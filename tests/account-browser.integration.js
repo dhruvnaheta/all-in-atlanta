@@ -67,6 +67,15 @@ for (const autoMatch of [false, true])
           streakTrackingVersion: "games-v2",
           lastStreakGameDate: "Sep 24, 2026",
         },
+        "players/p_claimed": {
+          key: "claimed",
+          dn: "Claimed Player",
+          total: 20,
+        },
+        "playerAccounts/p_claimed": {
+          playerKey: "claimed",
+          uid: "other-owner",
+        },
         "playerContacts/p_account-alice": {
           email: autoMatch
             ? " Account-Player@Example.test "
@@ -143,6 +152,47 @@ for (const autoMatch of [false, true])
           await expect(page.locator("#accountContent")).toContainText(
             "Profile request sent",
           );
+          await page.getByText("Change request", { exact: true }).click();
+          await expect(
+            page.locator('#accountPlayerKey option[value="claimed"]'),
+          ).toHaveCount(0);
+          await page.locator("#accountPlayerSearch").fill("Claimed");
+          await expect(
+            page.locator('#accountPlayerKey option[value="claimed"]'),
+          ).toHaveCount(0);
+          await page.locator("#accountPlayerSearch").fill("");
+          await page.locator("#accountPlayerKey").selectOption("");
+          await page.locator("#accountNewName").fill("Different Player");
+          await page.getByRole("button", { name: "Update request" }).click();
+          await expect(page.locator("#accountContent")).toContainText(
+            "You’re almost in, Different Player.",
+          );
+          await page
+            .getByRole("button", { name: "Cancel request", exact: true })
+            .click();
+          await expect(
+            page.getByText("Profile request sent", { exact: true }),
+          ).toHaveCount(0);
+          await page.locator("#accountNewName").fill("");
+          await page.locator("#accountPlayerKey").selectOption("account-alice");
+          await page.locator('#accountLinkForm button[type="submit"]').click();
+          await expect(
+            page.getByText("Profile request sent", { exact: true }),
+          ).toBeVisible();
+          await db
+            .doc(`${LEAGUE_PATH}/accounts/${user.uid}`)
+            .update({
+              status: "rejected",
+              reviewReason: "Please confirm <your> player name.",
+            });
+          await expect(page.locator("#accountContent")).toContainText(
+            "Please confirm <your> player name.",
+          );
+          await page.locator("#accountPlayerKey").selectOption("account-alice");
+          await page.locator('#accountLinkForm button[type="submit"]').click();
+          await expect(
+            page.getByText("Profile request sent", { exact: true }),
+          ).toBeVisible();
           await adminPage.goto("http://127.0.0.1:4184/?emulator=1");
           await adminPage.locator("#nav-account").click();
           await adminPage

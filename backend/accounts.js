@@ -32,6 +32,10 @@ export async function playerAccount(db, request, now = new Date(), auth) {
   const admin = auth.token?.admin === true;
   const ref = (path) => db.doc(`${LEAGUE_PATH}/${path}`);
   const ownRef = ref(`accounts/${encodeURIComponent(auth.uid)}`);
+  if (action === "claimedProfiles") {
+    const links = await db.collection(`${LEAGUE_PATH}/playerAccounts`).get();
+    return { claimedKeys: links.docs.map((doc) => doc.data().playerKey) };
+  }
   if (action === "checkIn") {
     return db.runTransaction(async (tx) => {
       const account = (await tx.get(ownRef)).data();
@@ -155,6 +159,19 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       });
       return { linked: true };
     }
+    if (action === "cancelRequest") {
+      const current = (await tx.get(ownRef)).data();
+      if (current?.status !== "pending" || current.playerKey)
+        throw new Error("This request has already been handled.");
+      tx.set(ownRef, {
+        uid: auth.uid,
+        email: current.email || "",
+        status: "cancelled",
+        autoLinkBlocked: true,
+        cancelledAt: now.toISOString(),
+      });
+      return { saved: true };
+    }
     if (action === "requestLink") {
       if (!auth.token?.email_verified)
         throw new Error(
@@ -163,8 +180,6 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       const current = (await tx.get(ownRef)).data();
       if (current?.playerKey)
         throw new Error("Your account already has a player profile.");
-      if (current?.status === "pending")
-        throw new Error("Your request is already waiting for approval.");
       const newName = request.newName
         ? cleanPlayerName(clean(request.newName))
         : "";
@@ -208,6 +223,8 @@ export async function playerAccount(db, request, now = new Date(), auth) {
       const account = (await tx.get(target)).data();
       if (account?.status !== "pending" || account.playerKey)
         throw new Error("This request has already been handled.");
+      if (request.requestedAt && request.requestedAt !== account.requestedAt)
+        throw new Error("This request changed. Refresh and review it again.");
       if (action === "rejectLink") {
         tx.update(target, {
           status: "rejected",

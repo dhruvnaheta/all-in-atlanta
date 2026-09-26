@@ -153,6 +153,24 @@ export async function initializeFirebase(onError) {
           )
             return;
         }
+        if (!account?.playerKey && user.emailVerified) {
+          try {
+            const { data } = await accountCall({ action: "claimedProfiles" });
+            if (
+              generation !== accountGeneration ||
+              profileRevision !== profileGeneration
+            )
+              return;
+            updateAccount({ claimedKeys: data.claimedKeys });
+          } catch (error) {
+            if (
+              generation === accountGeneration &&
+              profileRevision === profileGeneration
+            )
+              updateAccount({ loaded: true, error: error.message });
+            return;
+          }
+        }
         updateAccount({ loaded: true, account, profile: null, error: null });
         if (account?.playerKey) {
           try {
