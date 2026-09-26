@@ -51,7 +51,7 @@ function signedOut() {
     <form id="accountAuthForm" class="card account-form" data-submit="accountAuthenticate">
       <h2>${signup ? "Create your account" : reset ? "Reset your password" : "Welcome back"}</h2>
       <p class="account-muted">${signup ? "Already played with us? We’ll connect your existing results after you sign up." : reset ? "Enter your sign-in email and we’ll send a reset link." : "Sign in to see your personal stats."}</p>
-      ${reset ? "" : '<button class="btn btn-ghost account-google" type="button" data-click="accountGoogleSignIn">Continue with Google</button><div class="account-auth-divider">or use your email</div>'}
+      ${reset ? "" : '<button class="btn btn-ghost account-google" type="button" data-click="accountGoogleSignIn"><img src="assets/google.svg" width="20" height="20" alt="" aria-hidden="true">Continue with Google</button><div class="account-auth-divider">or use your email</div>'}
       ${field("accountEmail", "Email", "", "email", 'autocomplete="email" required maxlength="254"')}
       ${reset ? "" : field("accountPassword", "Password", "", "password", `autocomplete="${signup ? "new-password" : "current-password"}" required ${signup ? 'minlength="8"' : ""}`)}
       <p id="accountAuthMessage" class="account-message" role="status" data-preserve></p>

@@ -197,10 +197,33 @@ test(
         path: "test-results/personal-mobile.png",
         fullPage: true,
       });
-      await page.reload();
+      // Navigation drops the query string; keep reloads on the local emulators.
+      await page.goto("http://127.0.0.1:4184/account/?emulator=1");
       await page.locator("#nav-account").click();
       await expect(page.locator("#accountTitle")).toHaveText(
         "Hey, Account Alice",
+      );
+      // Claims granted after login must be picked up on a direct account load.
+      await expect(page.locator("#accountHeadingActions")).not.toContainText(
+        "Admin view",
+      );
+      await auth.setCustomUserClaims(user.uid, { admin: true });
+      await page.goto("http://127.0.0.1:4184/account/?emulator=1");
+      await expect(page.locator("#accountHeadingActions")).toContainText(
+        "Admin view",
+      );
+      // Returning within the same session also refreshes changed claims.
+      await page.evaluate(async () => {
+        const { go } = await import("/js/navigation.js");
+        go("home");
+      });
+      await auth.setCustomUserClaims(user.uid, { admin: false });
+      await page.evaluate(async () => {
+        const { go } = await import("/js/navigation.js");
+        go("account");
+      });
+      await expect(page.locator("#accountHeadingActions")).not.toContainText(
+        "Admin view",
       );
       await page.locator('[data-click="accountSignOut"]').click();
       await expect(page.locator("#accountAuthForm")).toBeVisible();

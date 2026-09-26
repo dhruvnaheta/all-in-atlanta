@@ -2103,7 +2103,8 @@ button[data-click][aria-busy="true"]::after {
 .account-message { color: var(--green); font-size: 14px; line-height: 1.5; margin: 12px 0; overflow-wrap: anywhere; }
 .account-message:empty { display: none; }
 .account-form > .btn { width: 100%; }
-.account-google { margin-top: 16px; }
+.account-google { display: inline-flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; }
+.account-google img { flex-shrink: 0; }
 .account-auth-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 13px; }
 .account-auth-divider::before, .account-auth-divider::after { content: ""; flex: 1; height: 1px; background: #ddd; }
 .account-text-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
@@ -2184,7 +2185,8 @@ a[data-click] { text-decoration: none; }
 
 .mobile-more a { display: flex; align-items: center; text-decoration: none; }
 
-.tv-toolbar { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+#page-tv.active { display: flex; }
+.tv-toolbar { position: fixed; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); z-index: 1; }
 .tv-exit { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 16px; border: 1px solid #ffffff60; border-radius: 6px; color: #fff; }
 .tv-exit:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .tv-heading { color: #fff; }

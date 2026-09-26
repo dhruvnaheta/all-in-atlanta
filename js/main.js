@@ -73,6 +73,7 @@ import {
 import {
   adminSetState,
   adminStopGame,
+  adminStopWithoutResults,
   adminTimerPause,
   adminTimerResume,
   adminTimerReset,
@@ -250,6 +251,7 @@ export const actions = {
     adminCreateAndCheckIn(element.dataset.arg0),
   adminSetState: (element, event) => adminSetState(element.dataset.arg0),
   adminStopGame: (element, event) => adminStopGame(),
+  adminStopWithoutResults: () => adminStopWithoutResults(),
   adminTimerPause: (element, event) => adminTimerPause(),
   adminTimerResume: (element, event) => adminTimerResume(),
   adminTimerReset: (element, event) => adminTimerReset(),
@@ -295,8 +297,8 @@ for (const [name, handler] of Object.entries(actions)) {
 }
 bindActions(actions);
 
-renderAll();
 initializeNavigation();
+renderAll();
 initializeFirebase((error) =>
   toast("Live updates are unavailable. " + error.message),
 )

@@ -101,6 +101,50 @@ test("admin check-in, timer pause/resume and scoring preserve persisted state", 
   await page.locator('[data-click="logout"]').click();
   await expect(page.locator("#accountEmail")).toBeVisible();
 });
+test("stop game asks for finishing order while check-in is open and awards finish points", async ({
+  page,
+}) => {
+  await login(page);
+  await page.locator("#adminSearchInput").fill("Alice");
+  await page.locator('[data-mousedown="adminCheckIn"]').click();
+  await page.locator('[data-click="adminStopGame"]').click();
+  await expect(page.locator("#finishSection .fsel")).toBeFocused();
+  await expect(page.locator("#aconfirm")).not.toBeVisible();
+  await page.locator(".fsel").selectOption("1");
+  await page.locator('[data-click="submitResults"]').click();
+  await expect(page.locator("#adminBody")).toContainText("Game completed");
+  const player = await page.evaluate(
+    async () => (await import("/js/state.js")).getPlayers().alice,
+  );
+  expect(player.total).toBe(50);
+});
+
+test("ending without results requires confirmation and cancel preserves selected positions", async ({
+  page,
+}) => {
+  await login(page);
+  await page.locator("#adminSearchInput").fill("Alice");
+  await page.locator('[data-mousedown="adminCheckIn"]').click();
+  await page.locator('[data-click="submitResults"]').click();
+  await expect(page.locator("#aconfirm-msg")).toContainText(
+    "only 1 participation point",
+  );
+  await page.locator('[data-click="cancelConfirm"]').click();
+  await page.locator(".fsel").selectOption("1");
+  await page.locator('[data-click="adminStopWithoutResults"]').click();
+  await page.locator('[data-click="cancelConfirm"]').click();
+  await expect(page.locator(".fsel")).toHaveValue("1");
+  await page.locator('[data-click="adminStopWithoutResults"]').click();
+  await page.locator("#aconfirm-yes").click();
+  await expect(page.locator("#adminBody")).toContainText("Game completed");
+  const state = await page.evaluate(async () => {
+    const { getPlayers, getHistory } = await import("/js/state.js");
+    return { player: getPlayers().alice, history: getHistory() };
+  });
+  expect(state.player.total).toBe(26);
+  expect(state.history.some((game) => game.stopped)).toBe(true);
+});
+
 test("remote updates refresh rankings and timer while keeping a registration draft", async ({
   page,
 }) => {
@@ -376,12 +420,16 @@ test("public timer hides completed sessions, supports Escape and fits phones", a
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/tv/");
   await expect(page.locator("#page-tv")).toBeVisible();
+  await expect(page).toHaveTitle("Timer");
   await expect(page.locator("#tvTimerContent")).toContainText("LEVEL");
   const exit = await page.locator(".tv-exit").boundingBox();
   const heading = await page.locator(".tv-heading").boundingBox();
+  expect(exit.y).toBe(16);
+  expect(375 - exit.x - exit.width).toBe(16);
   expect(exit.y + exit.height).toBeLessThanOrEqual(heading.y);
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/games\/$/);
+  await expect(page).toHaveTitle("Active Games | All In Atlanta");
   await page.goto("/tv/");
   await page.evaluate(async () => {
     const { LS } = await import("/js/store.js");
@@ -393,5 +441,33 @@ test("public timer hides completed sessions, supports Escape and fits phones", a
   await expect(page.locator("#tvTimerContent")).toContainText("No live game");
   await expect(page.locator("#tvTimerContent")).not.toContainText("LEVEL");
   await page.locator(".tv-exit").click();
+  await expect(page).toHaveURL(/\/games\/$/);
+});
+
+test("timer navigation restores its title and preserves the exit control during updates", async ({
+  page,
+}) => {
+  await page.locator("#nav-tv").click();
+  await expect(page).toHaveTitle("Timer");
+  const exit = page.locator(".tv-exit");
+  const bounds = await exit.boundingBox();
+  expect(bounds.y).toBe(16);
+  expect(page.viewportSize().width - bounds.x - bounds.width).toBe(16);
+  await exit.focus();
+  await page.evaluate(async () => {
+    const { renderTVTimer } = await import("/js/views/timer.js");
+    renderTVTimer();
+    renderTVTimer();
+  });
+  await expect(exit).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/games\/$/);
+  await expect(page.locator("#page-tv")).toBeHidden();
+  await page.goBack();
+  await expect(page).toHaveTitle("Timer");
+  await expect(page.locator("#page-tv")).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveTitle("Timer");
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/games\/$/);
 });

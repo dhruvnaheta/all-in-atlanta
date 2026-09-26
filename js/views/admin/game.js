@@ -26,8 +26,14 @@ export async function adminSetState(action) {
 }
 
 export function adminStopGame() {
+  const section = document.getElementById("finishSection");
+  if (!section) return adminStopWithoutResults();
+  section.scrollIntoView({ block: "start", behavior: "smooth" });
+  section.querySelector("select")?.focus({ preventScroll: true });
+}
+export function adminStopWithoutResults() {
   askConfirm(
-    "Stop game? All checked-in players will receive 1 participation point. Game will be logged.",
+    "Stop without finishing results? No 1st–8th place points will be awarded, even if positions are selected. Every checked-in player will receive only 1 participation point, and the game will be logged as stopped. Confirm to continue without results, or cancel to enter the finishing order.",
     () => completeGame(true),
   );
 }
@@ -99,5 +105,12 @@ export function syncFpos(sn) {
   if (pts) pts.textContent = ptFor(n) + " pts";
 }
 export function submitResults() {
+  const hasFinish = _getTonight().some((p) => {
+    const value = document.getElementById(
+      "fsel_" + playerFieldId(p.key),
+    )?.value;
+    return value && value !== "p";
+  });
+  if (!hasFinish) return adminStopWithoutResults();
   return completeGame(false);
 }

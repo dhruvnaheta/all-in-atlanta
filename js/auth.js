@@ -43,3 +43,6 @@ export async function verifyEmail() {
 export async function refreshUser() {
   return provider?.refreshUser();
 }
+export async function refreshToken() {
+  return provider?.refreshToken?.();
+}

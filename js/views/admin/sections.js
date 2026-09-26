@@ -1,3 +1,4 @@
+import { newestGameFirst } from "../../league-date.js";
 import {
   timerGetRemaining,
   timerGetProgress,
@@ -169,11 +170,11 @@ export function tonightList(tonight, players) {
 export function finishSection(state, tonight, players, activeGame) {
   // finish positions
   const finishSection =
-    state === "running" && !activeGame?.registrationOpen && tonight.length
+    state === "running" && tonight.length
       ? `
-    <div class="asec">
+    <div class="asec" id="finishSection">
       <div class="asec-title">Assign Finish Positions</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Unassigned players receive 1 participation point.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Before ending the game, enter the finishing order (1st–8th) below, then submit to award finish points. Unassigned players receive 1 participation point.</div>
       <div style="font-size:11px;line-height:1.5;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:11px">
         <strong>Game streak:</strong> Monday, Wednesday, and Thursday games all count. Missing any scheduled game resets the streak. At 5 consecutive games, award the streak chips manually; the next attended scheduled game starts a new 1/5 cycle.
       </div>
@@ -212,8 +213,9 @@ export function finishSection(state, tonight, players, activeGame) {
         </div>`;
         })
         .join("")}
-      <div style="margin-top:13px;display:flex;gap:10px">
+      <div style="margin-top:13px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-green" data-click="submitResults">Submit &amp; Award Points</button>
+        <button class="btn btn-ghost" data-click="adminStopWithoutResults">Stop Without Results…</button>
       </div>
     </div>`
       : "";
@@ -224,11 +226,10 @@ export function finishSection(state, tonight, players, activeGame) {
 export function historyRows(history) {
   const histRows =
     history
-      .slice()
-      .reverse()
-      .map((h, i) => {
+      .map((h, idx) => ({ h, idx }))
+      .sort((a, b) => newestGameFirst(a.h, b.h))
+      .map(({ h, idx }) => {
         const winner = h.results.find((r) => r.pos === 1)?.name || "—";
-        const idx = history.length - 1 - i; // original index for toggle id
         const isStopped = !!h.stopped;
         const badge = isStopped
           ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:#fef3c7;color:#92400e">STOPPED</span>`

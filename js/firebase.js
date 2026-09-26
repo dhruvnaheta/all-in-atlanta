@@ -86,6 +86,8 @@ export async function initializeFirebase(onError) {
       const token = await auth.currentUser.getIdTokenResult(true);
       setSession(auth.currentUser, token.claims.admin === true);
     },
+    // onIdTokenChanged publishes the refreshed claims to all auth subscribers.
+    refreshToken: () => auth.currentUser?.getIdTokenResult(true),
     signOut: () => authSDK.signOut(auth),
     resetPassword: (email) => authSDK.sendPasswordResetEmail(auth, email),
   });
@@ -156,11 +158,15 @@ export async function initializeFirebase(onError) {
       );
   });
   let authRevision = 0;
+  let tokenUser;
   authSDK.onIdTokenChanged(auth, async (user) => {
     const revision = ++authRevision;
+    // Refresh restored sessions once; refreshing emits another token event.
+    const forceRefresh = !!user && tokenUser !== user;
+    tokenUser = user;
     try {
       const admin = user
-        ? (await user.getIdTokenResult()).claims.admin === true
+        ? (await user.getIdTokenResult(forceRefresh)).claims.admin === true
         : false;
       if (revision === authRevision) setSession(user, admin);
     } catch (error) {

@@ -1,3 +1,4 @@
+import { newestGameFirst } from "../league-date.js";
 import { runCommand } from "../commands.js";
 import { toast } from "../dom.js";
 import {
@@ -23,8 +24,7 @@ export function renderSeriesSection() {
           // find most recent game for this series
           const myGames = games
             .filter((g) => g.seriesId === s.id)
-            .slice()
-            .reverse();
+            .sort(newestGameFirst);
           return `<div style="border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;background:var(--bg)">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
@@ -46,7 +46,8 @@ export function renderSeriesSection() {
         ${myGames
           .slice(0, 5)
           .map((g) => {
-            const isActive = g.id === activeId;
+            const isSelected = g.id === activeId;
+            const isActive = isSelected && g.status === "running";
             const stateLabel =
               {
                 scheduled: "Scheduled",
@@ -66,9 +67,11 @@ export function renderSeriesSection() {
             ${
               isActive
                 ? `<span style="font-size:10px;font-weight:700;color:var(--red);padding:2px 6px;border-radius:3px;background:rgba(166,28,28,.1);letter-spacing:.5px">ACTIVE</span>`
-                : `<button class="btn btn-ghost" style="padding:2px 8px;font-size:11px" data-click="adminActivateGame" data-arg0="${esc(g.id)}">▶</button>`
+                : isSelected
+                  ? `<span style="font-size:10px;color:var(--muted)">SELECTED</span>`
+                  : `<button class="btn btn-ghost" style="padding:2px 8px;font-size:11px" data-click="adminActivateGame" data-arg0="${esc(g.id)}">▶</button>`
             }
-            ${!isActive ? `<button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--muted)" data-click="adminDeleteGame" data-arg0="${esc(g.id)}">✕</button>` : ""}
+            ${!isSelected ? `<button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--muted)" data-click="adminDeleteGame" data-arg0="${esc(g.id)}">✕</button>` : ""}
           </div>`;
           })
           .join("")}

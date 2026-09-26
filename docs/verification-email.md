@@ -26,3 +26,12 @@ it does not implement an email action handler. Keep Firebase's working handler.
 
 References: [Firebase domain setup](https://firebase.google.com/docs/auth/email-custom-domain)
 and [editable template fields](https://support.google.com/firebase/answer/7000714).
+
+Follow-up check: public DNS uses `lunar.dns-parking.com` and
+`solar.dns-parking.com`, indicating Hostinger DNS. The Firebase Authentication
+configuration API was checked again and returned HTTP 403, "The caller does not
+have permission." Custom sender setup still needs Firebase Authentication
+configuration access and access to this domain's Hostinger DNS zone. No DNS or
+sender settings were changed. The spam-folder hint exists in this branch's account
+verification screen; production main currently has only the older admin login,
+so the hint ships with the account feature deployment.

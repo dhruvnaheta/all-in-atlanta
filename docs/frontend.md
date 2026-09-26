@@ -100,3 +100,11 @@ Public navigation uses `/about/`, `/rankings/`, `/games/`, `/rules/`,
 front matter include `index.html` at build time so GitHub Pages serves each
 address directly. Keep these route files when publishing from the repository
 root. The local preview server maps these same paths to the app shell.
+
+Production hotfix `57507f3` was published to `main` on September 26, 2026.
+Live Playwright checks confirmed HTTP 200 and the correct visible page on both
+direct navigation and reload for `/rankings/` and `/tv/`. The live completed-game
+empty timer, Escape navigation, 375px Exit layout, and optional-purchase wording
+also passed. The scoped production release passed all 11 browser tests and 29
+unit tests before publication. Account-feature code remains on the separate
+`carl/refactor` branch.

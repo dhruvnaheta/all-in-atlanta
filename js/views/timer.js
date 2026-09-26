@@ -121,10 +121,8 @@ export function renderTVTimer() {
   const el = document.getElementById("tvTimerContent");
   if (!el) return;
   const activeGame = getActiveGame();
-  const exit =
-    '<div class="tv-toolbar"><a class="tv-exit" href="/games/" data-click="go" data-arg0="games">Exit timer</a></div>';
   if (activeGame?.status !== "running") {
-    el.innerHTML = `${exit}<h1 class="tv-heading">No live game</h1><p class="tv-empty">The public timer will appear here when a game starts.</p>`;
+    el.innerHTML = `<h1 class="tv-heading">No live game</h1><p class="tv-empty">The public timer will appear here when a game starts.</p>`;
     return;
   }
   const ts = getTimerState();
@@ -155,7 +153,6 @@ export function renderTVTimer() {
     : "Final Level";
   const gameLabel = activeGame ? activeGame.name : "All In Atlanta";
   el.innerHTML = `
-    ${exit}
     <div class="tv-heading" style="color:rgba(255,255,255,.4);font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px">
       ${esc(gameLabel)} &nbsp;·&nbsp; LEVEL ${ts.levelIdx + 1}${isPaused ? " &nbsp;·&nbsp; PAUSED" : ""}
     </div>

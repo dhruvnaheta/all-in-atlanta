@@ -70,7 +70,7 @@ export function renderPlayerTable() {
       <td style="${cellStyle};font-weight:600">${esc(p.dn)}</td>
       <td style="${cellStyle};color:var(--muted)">${esc(p.email || "—")}</td>
       <td style="${cellStyle};color:var(--muted)">${esc(p.phone || "—")}</td>
-      <td style="${cellStyle};text-align:center">${esc(p.registered || "—")}</td>
+      <td style="${cellStyle};text-align:center">${esc(p.registered || "Unknown")}</td>
       <td style="${cellStyle};text-align:center;font-weight:600">${p.games}</td>
       <td style="${cellStyle};text-align:center;font-weight:600;color:${p.currentStreak >= 3 ? "var(--gold-d)" : "var(--muted)"}">${streakStr}</td>
       <td style="${cellStyle};text-align:center"><span style="background:var(--green);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;padding:2px 8px;border-radius:4px">${p.total}</span></td>

@@ -1,4 +1,6 @@
 import { renderTVTimer, renderGamePage } from "./refresh.js";
+import { refreshToken } from "./auth.js";
+import { toast } from "./dom.js";
 const pages = {
   home: "Home",
   about: "About",
@@ -26,22 +28,27 @@ export function toggleMobileMenu() {
     .getElementById("mobt-more")
     .setAttribute("aria-expanded", String(!menu.hidden));
 }
-document.addEventListener("keydown", (event) => {
-  if (
-    event.key === "Escape" &&
-    document.getElementById("page-tv")?.style.display === "flex"
-  ) {
-    go("games");
-    return;
-  }
-  if (
-    event.key === "Escape" &&
-    document.getElementById("mobileMore")?.hidden === false
-  ) {
-    toggleMobileMenu();
-    document.getElementById("mobt-more").focus();
-  }
-});
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      event.key === "Escape" &&
+      document.getElementById("page-tv")?.classList.contains("active")
+    ) {
+      event.preventDefault();
+      go("games");
+      return;
+    }
+    if (
+      event.key === "Escape" &&
+      document.getElementById("mobileMore")?.hidden === false
+    ) {
+      toggleMobileMenu();
+      document.getElementById("mobt-more").focus();
+    }
+  },
+  { capture: true },
+);
 document.addEventListener("click", (event) => {
   if (
     document.getElementById("mobileMore")?.hidden === false &&
@@ -57,7 +64,11 @@ export function go(page, { history = true } = {}) {
   if (history && location.pathname !== path)
     window.history.pushState(null, "", path);
   document.title =
-    page === "home" ? homeTitle : `${pages[page]} | All In Atlanta`;
+    page === "home"
+      ? homeTitle
+      : page === "tv"
+        ? "Timer"
+        : `${pages[page]} | All In Atlanta`;
   const url = `https://allinatlanta.com${path}`;
   document.querySelector('link[rel="canonical"]').href = url;
   document.querySelector('meta[property="og:url"]').content = url;
@@ -85,6 +96,11 @@ export function go(page, { history = true } = {}) {
     .forEach((t) => t.classList.remove("active"));
   const pageEl = document.getElementById("page-" + page);
   if (!pageEl) return;
+  pageEl.classList.add("active");
+  if (page === "account")
+    refreshToken().catch((error) =>
+      toast("Unable to refresh account access. " + error.message),
+    );
   // TV page: fullscreen, hide nav/footer/tabs
   const isTV = page === "tv";
   document.querySelector("nav").style.display = isTV ? "none" : "";
@@ -93,10 +109,8 @@ export function go(page, { history = true } = {}) {
   document.getElementById("mobTabs") &&
     (document.getElementById("mobTabs").style.display = isTV ? "none" : "");
   if (isTV) {
-    pageEl.style.display = "flex";
     renderTVTimer();
   } else {
-    pageEl.classList.add("active");
     const navEl = document.getElementById("nav-" + page);
     if (navEl) navEl.classList.add("active");
     const mobEl = document.getElementById("mobt-" + page);

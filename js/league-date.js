@@ -51,3 +51,10 @@ export function leagueDateKey(value) {
     ? key
     : null;
 }
+
+// Unknown dates sort last; compare calendar dates without timezone conversion.
+export function newestGameFirst(a, b) {
+  return (leagueDateKey(b.date) || "").localeCompare(
+    leagueDateKey(a.date) || "",
+  );
+}
