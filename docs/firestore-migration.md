@@ -1,15 +1,22 @@
 # Native Firestore migration
 
-Status: release validated; production cutover pending backend deployment.
-Billing, Email/Password Authentication, and backend deployment APIs are enabled.
-Two administrator accounts have been created and their custom claims verified;
-private password-setup links are saved under the ignored backups directory.
-The current deployed rules have also been saved there for rollback.
+Status: production migration completed on 2026-09-26 UTC.
+The native namespace is live, all four callable functions are deployed, and
+GitHub Pages serves application code from release `628097c19725a2301d26cfd66da1b4c79bbb7a8f`.
+A fresh frozen-source snapshot and exact verification preserved 231 players,
+29 history entries, 13 attendance records, 3 series, 8 scheduled games, and
+1,336 native documents. Preserved totals are 692 points, 66 monthly points,
+and 510 games. Original legacy documents and all local backups are retained.
 
-The integrated release passes 23 unit tests, lint, 8 browser UI tests, 9 backend
-integration tests, a full-backup synchronization rehearsal, and the browser test
-against real Auth/Firestore/Functions emulators. Deployment uses an isolated
-checkout so concurrent workspace edits cannot change the release artifact.
+Billing, Email/Password Authentication, and backend APIs are enabled. Two admin
+accounts have verified custom claims; their private setup links are saved under
+the ignored backups directory. No setup emails were sent.
+
+Validation: unit tests, lint, 8 browser UI tests, 9 backend integration tests,
+full-backup synchronization, resumable migration CLI checks, and the browser flow
+against Auth/Firestore/Functions emulators passed. Live browser verification
+confirmed counts/totals, admin sign-in availability, private-field exclusion,
+legacy cache removal, and 404 responses for private/backend deployment artifacts.
 
 ## Schema
 
