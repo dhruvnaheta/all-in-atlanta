@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() { return request.auth != null && request.auth.token.admin == true; }
+    function published() {
+      return get(/databases/$(database)/documents/leagues/atlanta-v2/operations/control).data.published == true;
+    }
+    match /leagues/atlanta-v2/{collection}/{id} {
+      allow read: if published() && collection in ['players', 'series', 'games', 'history', 'settings'];
+      allow read: if isAdmin() && collection in ['playerContacts', 'legacyAttendance', 'operations'];
+      // All mutations go through validated callable functions and transactions.
+      allow write: if false;
+    }
+    match /leagues/atlanta-v2/games/{gameId}/{collection}/{id} {
+      allow read: if published() && collection in ['participants', 'runtime'];
+      allow write: if false;
+    }
+    // Private identity mapping; profile linking and updates require the callable.
+    match /leagues/atlanta-v2/accounts/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+    // Legacy documents, credentials, and backup collections are retired/private.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

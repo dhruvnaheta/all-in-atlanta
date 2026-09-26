@@ -1,0 +1,14 @@
+exclude:
+  - backend
+  - scripts
+  - tests
+  - docs
+  - backups
+  - node_modules
+  - package.json
+  - package-lock.json
+  - firebase.json
+  - firebase.auth.json
+  - firestore.rules
+  - eslint.config.js
+  - playwright.config.js

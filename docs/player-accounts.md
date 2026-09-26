@@ -1,0 +1,77 @@
+# Player accounts and My Stats
+
+The My Stats page is an additional page in the existing static app. A single
+**Log In** navigation entry opens the shared sign-in page. After sign-in it reads
+**My Account**, opening personal stats for players and the admin view for admins. Public league
+pages and guest check-in remain available. Email/password sign-in now accepts both
+players and admins; the Firebase `admin: true` custom claim still controls every
+administrative operation. Admins signing in through My Stats open the admin view
+and can return to their personal page.
+
+Players create an account, verify their email, and request an existing player
+profile (or request a new player name). An admin confirms identity and approves or
+declines the request under **Player Account Requests**. Approval of an existing
+player does not edit that player's results, statistics, name or contacts.
+
+## Data and permissions
+
+- `leagues/atlanta-v2/accounts/{uid}` holds the private account request, status,
+  verified sign-in email at request time, and approved `playerKey`. Only its owner
+  and admins can read it; clients cannot write it.
+- `leagues/atlanta-v2/playerAccounts/{encodedPlayerId}` is a server-only reverse
+  ownership mapping. Approval checks and creates it transactionally, preventing
+  two accounts from claiming one profile. Players cannot assign or change links.
+- The `managePlayerAccount` callable handles requests, approval, rejection,
+  sanitized private profile reads, profile updates, and personal check-in.
+  Personal check-in resolves the player from the authenticated UID, ignoring any
+  supplied player key. Existing guest check-in remains a separate public flow.
+- Players may edit display name, contact email and phone. The stable player key,
+  point totals, results, admin notes and roles cannot be edited through account
+  settings. Contact email and Firebase sign-in email are separate.
+- Private account/profile state lives in memory and clears on sign-out or account
+  switching. Private fields are not written to the league's localStorage cache.
+- Published standings/results remain public. Private contact documents remain
+  admin-only in Firestore; owners receive only their display name, email and phone
+  through the callable, never administrator recovery notes.
+
+My Stats reads the shared `getPlayers()` view model. It does not recompute league
+totals, backfill history, or modify scoring. Recent results use that view model's
+`gameDates` records. Incomplete records are labeled accordingly. Placement metrics
+count recorded wins and top-eight finishes, never invented lower placements.
+Streaks follow the shared league schedule and five-game cycle rules.
+
+A linked player whose profile has been deleted sees an unavailable-profile message;
+self check-in refuses to recreate it. Links also bind to the profile document's
+creation timestamp (or a generated identity version for new profiles), so deleting
+and recreating the same name does not transfer
+ownership to a different person. Account unlinking/reassignment is deliberately
+not a self-service action. When deleting/replacing player identities or doing a full
+league wipe, include the new account mappings in the administrator's data plan so
+an old mapping cannot be reused for a different person with the same legacy key.
+
+## Release
+
+Deploy the new `managePlayerAccount` function and updated Firestore rules before
+publishing the matching frontend. Existing Email/Password authentication and admin
+claims remain in use. Ensure Email/Password account creation is enabled in the
+Firebase project and verify the production verification/password-reset email flow.
+The account function and owner/admin-only account read rules were deployed and
+verified in production on 2026-09-26 (UTC). The frontend had been published first,
+which caused new accounts to see “Missing or insufficient permissions.” The rollout
+did not migrate or edit league data. Users with an already-open failed account
+listener must reload the page after deployment; their Firebase Auth accounts remain
+valid. Tests use the demo project and do not write production data.
+
+## Verification
+
+```sh
+node --test tests/personal-stats.test.js
+PORT=4183 npm run test:browser -- tests/account.spec.js
+npm run test:accounts
+```
+
+The account browser integration test uses actual local Firebase SDKs and callables,
+separate player/admin browser sessions, and a demo project. It covers signup,
+verification, approval, stats, self check-in, private settings, persistence across
+reload, and sign-out. Screenshots are written to `test-results/personal-desktop.png`
+and `test-results/personal-mobile.png`.

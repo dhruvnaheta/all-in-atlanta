@@ -1,0 +1,8 @@
+node_modules/
+backend/node_modules/
+playwright-report/
+test-results/
+.firebase/
+*-debug.log
+.DS_Store
+backups/
