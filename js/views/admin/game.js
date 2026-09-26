@@ -21,7 +21,7 @@ import { toast, playerFieldId, esc } from "../../dom.js";
 import { askConfirm, adminAlert } from "./dialogs.js";
 import { commitResults, correctResults } from "../../results.js";
 import { leagueDateKey, formatLeagueDate } from "../../league-date.js";
-import { ptFor } from "../../scoring.js";
+import { ptFor, MAX_EDITED_POINTS } from "../../scoring.js";
 export async function adminSetState(action) {
   const before = getActiveGame();
   const receipt = await runCommand(action);
@@ -152,14 +152,14 @@ export function adminEditResults(id) {
     <div class="np-fields"><label class="np-field"><span class="np-label">Game name</span><input class="np-input" id="historyGameName" type="text" maxlength="160" value="${esc(record.gameName || getHistoryGameName(record))}"></label>
     <label class="np-field"><span class="np-label">Game date</span><input class="np-input" id="historyGameDate" type="date" value="${esc(leagueDateKey(record.date) || "")}"></label></div>
     <p>Correct the game details or finishing order. Date changes update monthly standings and attendance streaks.</p>
-    <p>Changing a finish fills in the standard points. Adjust awarded points below when needed. Saving updates standings; attendance stays the same.</p>
+    <p>Changing a finish fills in the standard points. Adjust awarded points below when needed (0–${MAX_EDITED_POINTS} per player per game). Saving updates standings; attendance stays the same.</p>
     ${record.results
       .map(
         (r, i) => `<label class="finish-row">
       <span style="flex:1">${esc(r.name || r.key)}</span>
       <select class="fsel" data-result-index="${i}">
         ${["p", 1, 2, 3, 4, 5, 6, 7, 8].map((pos) => `<option value="${pos}"${String(r.pos) === String(pos) ? " selected" : ""}>${pos === "p" ? "Participation" : "#" + pos} — ${ptFor(pos)} pts</option>`).join("")}
-      </select><input class="np-input" style="width:90px" type="number" min="0" step="1" aria-label="Points for ${esc(r.name || r.key)}" data-result-points="${i}" value="${esc(r.pts)}"></label>`,
+      </select><input class="np-input" style="width:90px" type="number" min="0" max="${MAX_EDITED_POINTS}" step="1" aria-label="Points for ${esc(r.name || r.key)}" data-result-points="${i}" value="${esc(r.pts)}"></label>`,
       )
       .join("")}
     <div role="alert" data-result-error></div>
@@ -210,8 +210,8 @@ export async function adminSaveResults() {
     const points = Object.fromEntries(before.results.map((r, i) => {
       const value = editor.querySelector(`[data-result-points="${i}"]`).value;
       const amount = Number(value);
-      if (!value.trim() || !Number.isSafeInteger(amount) || amount < 0)
-        throw new Error("Points must be non-negative whole numbers for every player.");
+      if (!value.trim() || !Number.isSafeInteger(amount) || amount < 0 || amount > MAX_EDITED_POINTS)
+        throw new Error(`Points must be whole numbers between 0 and ${MAX_EDITED_POINTS} for every player.`);
       return [r.key, amount];
     }));
     await correctResults({

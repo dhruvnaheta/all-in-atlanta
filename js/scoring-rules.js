@@ -1,5 +1,7 @@
 import { leagueDateKey } from "./league-date.js";
 export const PT = { 1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4 };
+// Per-player, per-game ceiling for manual corrections.
+export const MAX_EDITED_POINTS = 100;
 export const ptFor = (p) => PT[p] ?? 1;
 
 // ── Streak helpers ───────────────────────────────

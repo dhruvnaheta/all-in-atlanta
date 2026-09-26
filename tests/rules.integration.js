@@ -437,14 +437,23 @@ test("historical corrections validate placements and honor maintenance lock", as
   ])
     await assert.rejects(amendResults(db, { ...request, positions }));
   assert.deepEqual((await ref.get()).data(), before);
-  for (const points of [null, [], { alice: 3 }, { alice: -1, bob: 1 }, { alice: 1.5, bob: 1 }, { alice: "3", bob: 1 }, { alice: 3, bob: 1, extra: 1 }]) {
+  const participantsBefore = (await db.collection(`${root}/games/g/participants`).get()).docs.map((doc) => doc.data());
+  const gameBefore = (await db.doc(`${root}/games/g`).get()).data();
+  for (const points of [{ alice: 101, bob: 1 }, { alice: 2500, bob: 1 }, { alice: 1_000_000_000_000_000, bob: 1 }, null, [], { alice: 3 }, { alice: -1, bob: 1 }, { alice: 1.5, bob: 1 }, { alice: "3", bob: 1 }, { alice: 3, bob: 1, extra: 1 }]) {
     await assert.rejects(amendResults(db, {
       ...request, positions: { alice: "1", bob: "p" }, points,
     }), /Points must/);
   }
   assert.deepEqual((await ref.get()).data(), before);
+  assert.deepEqual((await db.collection(`${root}/games/g/participants`).get()).docs.map((doc) => doc.data()), participantsBefore);
+  assert.deepEqual((await db.doc(`${root}/games/g`).get()).data(), gameBefore);
   await amendResults(db, {
-    ...request, positions: { alice: "1", bob: "p" }, points: { alice: 30, bob: 0 },
+    ...request, positions: { alice: "1", bob: "p" }, points: { alice: 100, bob: 0 },
+  });
+  assert.deepEqual((await ref.get()).data().results.map((r) => r.pts).sort((a, b) => a - b), [0, 100]);
+  assert.equal((await db.doc(`${root}/games/g/participants/p_alice`).get()).data().results.game_g.pts, 100);
+  await amendResults(db, {
+    ...request, before: (await ref.get()).data(), positions: { alice: "1", bob: "p" }, points: { alice: 30, bob: 0 },
   });
   assert.deepEqual((await ref.get()).data().results.map((r) => r.pts).sort((a, b) => a - b), [0, 30]);
   const participant = (await db.doc(`${root}/games/g/participants/p_alice`).get()).data();

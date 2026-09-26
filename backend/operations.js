@@ -10,7 +10,7 @@ import {
   splitPlayer,
 } from "../js/schema.js";
 import { applyCheckIn } from "../js/checkin-model.js";
-import { ptFor } from "../js/scoring-rules.js";
+import { ptFor, MAX_EDITED_POINTS } from "../js/scoring-rules.js";
 import { scoreGame } from "../js/scoring.js";
 import { DEFAULT_STATE } from "../js/sync.js";
 
@@ -347,9 +347,9 @@ export async function amendResults(db, request, now = new Date()) {
       points !== undefined &&
       (!points || typeof points !== "object" || Array.isArray(points) ||
         !equal(Object.keys(points).sort(), [...keys].sort()) ||
-        Object.values(points).some((value) => !Number.isSafeInteger(value) || value < 0))
+        Object.values(points).some((value) => !Number.isSafeInteger(value) || value < 0 || value > MAX_EDITED_POINTS))
     )
-      throw new Error("Points must be non-negative whole numbers for every recorded participant.");
+      throw new Error(`Points must be whole numbers between 0 and ${MAX_EDITED_POINTS} for every recorded participant.`);
     const results = record.results.map((r) => {
       const value = positions[r.key];
       if (value !== "p" && !/^[1-8]$/.test(String(value)))

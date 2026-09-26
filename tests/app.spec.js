@@ -512,7 +512,16 @@ test("admins can correct past results and keep their draft through live updates"
   const editor = page.locator("#historyResultsEditor");
   await editor.locator("select").selectOption("1");
   await expect(editor.getByLabel("Points for Alice", { exact: true })).toHaveValue("25");
-  await editor.getByLabel("Points for Alice", { exact: true }).fill("30");
+  const pointsInput = editor.getByLabel("Points for Alice", { exact: true });
+  await expect(pointsInput).toHaveAttribute("max", "100");
+  for (const value of ["101", "2500", "1000000000000000"]) {
+    await pointsInput.fill(value);
+    await editor.getByRole("button", { name: "Save game" }).click();
+    await expect(editor.getByRole("alert")).toHaveText("Points must be whole numbers between 0 and 100 for every player.");
+    expect(await page.evaluate(() => window.correctionRequest)).toBeUndefined();
+    await expect(pointsInput).toBeEnabled();
+  }
+  await pointsInput.fill("30");
   await editor
     .getByLabel("Game name", { exact: true })
     .fill("Corrected Thursday");
