@@ -10,12 +10,19 @@
       "destination": "https://all-in-atlanta-pok.firebaseapp.com/__/firebase/:path*"
     },
     {
-      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin|account)/",
+      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin)/",
       "destination": "/index.html"
     },
     {
-      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin|account)",
+      "source": "/:page(about|rankings|games|rules|restrictions|tv|admin)",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/account{/}?",
+      "destination": "/admin/",
+      "permanent": true
     }
   ]
 }
