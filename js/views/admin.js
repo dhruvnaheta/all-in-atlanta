@@ -1,3 +1,4 @@
+import { checkInStatus } from "../public-games.js";
 import { loadAdministrators } from "./admin/access.js";
 import { renderAdminLogin } from "./admin-login.js";
 import { renderMarkup } from "../render.js";
@@ -65,11 +66,7 @@ export function renderAdmin() {
           const opts = allGames
             .map((g) => {
               const statusTag =
-                g.status === "running" && g.registrationOpen
-                  ? " · Check-in Open"
-                  : g.status === "running"
-                    ? " · Running"
-                    : "";
+                g.status === "running" ? ` · ${checkInStatus(g)}` : "";
               return `<option value="${g.id}"${g.id === getActiveGameId() ? " selected" : ""}>${esc(g.name)}${statusTag}</option>`;
             })
             .join("");

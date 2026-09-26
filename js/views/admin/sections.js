@@ -1,4 +1,4 @@
-import { isCheckInOpen } from "../../public-games.js";
+import { isCheckInOpen, checkInStatus } from "../../public-games.js";
 import { newestGameFirst, formatLeagueDate } from "../../league-date.js";
 import {
   timerGetRemaining,
@@ -11,19 +11,18 @@ import { previewNextStreak } from "../../scoring.js";
 export function gameButtons(state, game) {
   const registrationOpen = game?.registrationOpen;
   const canCheckIn = isCheckInOpen(game);
+  const isGameDay = isCheckInOpen({ ...game, registrationOpen: true });
   const gcBtns =
     state === "scheduled" && game
       ? '<button class="btn btn-green" data-click="adminSetState" data-arg0="start">▶ Start Game</button>'
       : state === "running"
-        ? `<button class="btn btn-ghost" data-click="adminSetState" data-arg0="${registrationOpen ? "closeRegistration" : "openRegistration"}">${registrationOpen ? "🔒 Close Check-In" : "🔓 Open Check-In"}</button><button class="btn btn-red" data-click="adminStopGame">⏹ Stop Game</button>`
+        ? `<button class="btn btn-ghost" data-click="adminSetState" data-arg0="${registrationOpen ? "closeRegistration" : "openRegistration"}">${registrationOpen ? (canCheckIn ? "🔒 Close Check-In" : "Disable game-day check-in") : isGameDay ? "🔓 Open Check-In" : "Enable game-day check-in"}</button><button class="btn btn-red" data-click="adminStopGame">⏹ Stop Game</button>`
         : "";
   return {
     gcBtns,
     stateLabels: {
       scheduled: "Game scheduled",
-      running: canCheckIn
-        ? "Running · Check-in OPEN"
-        : "Running · Check-in CLOSED",
+      running: `Running · ${checkInStatus(game)}`,
       completed: "Game completed",
     },
     dotCls: {

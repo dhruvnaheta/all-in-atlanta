@@ -7,6 +7,12 @@ export function isCheckInOpen(game, now = new Date()) {
     leagueDateKey(game.date) === atlantaDateKey(now)
   );
 }
+export function checkInStatus(game, now = new Date()) {
+  if (isCheckInOpen(game, now)) return "Check-in OPEN";
+  if (game?.status === "running" && game.registrationOpen)
+    return "Check-in unavailable · only on the game date (Atlanta time)";
+  return "Check-in CLOSED";
+}
 export function upcomingGames(series, now = new Date()) {
   const today = atlantaDateKey(now);
   return series

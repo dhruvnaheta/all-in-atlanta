@@ -342,3 +342,54 @@ test("launch availability follows the current game date, not its legacy ID", asy
   });
   await expect(page.locator('[data-click="adminLaunchGame"]')).toBeVisible();
 });
+
+test("administrator directory exposes removal only to owners and refreshes after removal", async ({
+  page,
+}) => {
+  await expect(page.locator('footer a[href="/admin/"]')).toHaveText("Admin");
+  await page.evaluate(async () => {
+    const { configureAdminDirectory } = await import("/js/admin-access.js");
+    window.directoryOwner = false;
+    window.directoryAdmins = [
+      { uid: "meg", email: "meg@example.test", owner: true },
+      { uid: "julia", email: "julia@example.test", owner: true },
+      { uid: "other", email: "other@example.test", owner: false },
+    ];
+    configureAdminDirectory(async ({ uid }) => {
+      if (uid) {
+        window.directoryAdmins = window.directoryAdmins.filter(
+          (admin) => admin.uid !== uid,
+        );
+        return { removed: true };
+      }
+      return {
+        administrators: window.directoryAdmins,
+        owner: window.directoryOwner,
+      };
+    });
+  });
+  await page.getByRole("button", { name: "Refresh administrators" }).click();
+  await expect(page.locator("#administratorList")).toContainText(
+    "meg@example.test · Owner",
+  );
+  await expect(
+    page.locator('[data-click="adminRemoveAdministrator"]'),
+  ).toHaveCount(0);
+  await page.evaluate(() => {
+    window.directoryOwner = true;
+  });
+  await page.getByRole("button", { name: "Refresh administrators" }).click();
+  await expect(
+    page.locator('[data-click="adminRemoveAdministrator"]'),
+  ).toHaveCount(1);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Remove administrator", exact: true })
+    .click();
+  await expect(page.locator("#administratorList")).not.toContainText(
+    "other@example.test",
+  );
+  await expect(page.locator("#administratorList")).toContainText(
+    "julia@example.test · Owner",
+  );
+});

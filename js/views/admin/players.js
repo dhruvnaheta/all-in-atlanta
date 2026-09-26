@@ -85,8 +85,8 @@ export function openEditPlayer(key) {
           <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DISPLAY NAME</div>
           <input aria-label="Display name" id="ep_name" value="${esc(p.dn)}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
         </div>
-        ${owner ? `<p>Linked account: ${esc(owner.email || owner.uid)}</p>` : ""}
-        ${owner ? '<button class="btn btn-ghost" id="unlinkPlayerAccount">Unlink account</button>' : ""}
+        ${owner ? `<p>Legacy profile link: ${esc(owner.email || owner.uid)}</p>` : ""}
+        ${owner ? '<button class="btn btn-ghost" id="unlinkPlayerAccount">Remove legacy link</button>' : ""}
         <label>Contact email<input id="ep_email" type="email" value="${esc(p.email || "")}" style="width:100%;padding:8px"/></label>
         <label>Phone<input id="ep_phone" type="tel" value="${esc(p.phone || "")}" style="width:100%;padding:8px"/></label>
         <div id="editPlayerError" role="alert"></div>
@@ -108,7 +108,7 @@ export function openEditPlayer(key) {
               `<option value="${esc(other.key)}">${esc(other.dn)} (${esc(other.email || other.key)})</option>`,
           )
           .join("")}</select>
-        <p style="font-size:12px">Keeps the selected profile and its contact details, fills missing contacts, and transfers game records. Conflicting results or two linked accounts must be resolved first.</p>
+        <p style="font-size:12px">Keeps the selected profile and its contact details, fills missing contacts, and transfers game records. Conflicting results or legacy profile links on both players must be resolved first.</p>
         <button class="btn btn-ghost" data-click="mergePlayerProfile" data-arg0="${esc(key)}">Merge duplicate</button>
       </div>
       <button data-click="deletePlayerProfile" data-arg0="${esc(key)}" style="width:100%;margin-top:10px;background:var(--red);color:#fff;border:none;border-radius:7px;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer">DELETE PROFILE</button>
@@ -118,7 +118,7 @@ export function openEditPlayer(key) {
     .querySelector("#unlinkPlayerAccount")
     ?.addEventListener("click", () => {
       askConfirm(
-        `Unlink ${owner.email || owner.uid} from "${p.dn}"? Their profile access will end. Stats and contact details are preserved. Correct the contact email before approving a replacement request.`,
+        `Remove the legacy profile link for ${owner.email || owner.uid} from "${p.dn}"? Stats and contact details are preserved.`,
         async () => {
           await accountCommand({
             action: "unlink",
@@ -126,7 +126,7 @@ export function openEditPlayer(key) {
             playerKey: key,
           });
           closeEditPlayer();
-          toast("Account unlinked. The player can submit a new request.");
+          toast("Legacy profile link removed.");
         },
       );
     });
