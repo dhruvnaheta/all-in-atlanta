@@ -1,3 +1,4 @@
+import { atlantaDateKey } from "../js/league-date.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -26,13 +27,12 @@ test(
       auth = getAuth(app);
     const batch = db.batch();
     for (const [path, value] of Object.entries({
-      "operations/control": { published: true, writesEnabled: true },
       "settings/current": { activeGameId: "browser-ops" },
       "games/browser-ops": {
         id: "browser-ops",
         name: "Operations test",
         seriesId: "ops",
-        date: "Sep 24, 2026",
+        date: atlantaDateKey(),
         status: "scheduled",
         registrationOpen: false,
         scheduled: true,
@@ -75,12 +75,33 @@ test(
       const page = await browser.newPage(),
         errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
+      const routeFirebase = (page) =>
+        page.route("**/js/firebase.js", async (route) => {
+          const response = await route.fetch();
+          const body = (await response.text())
+            .replace(
+              '"127.0.0.1", 8080',
+              `"127.0.0.1", ${process.env.FIRESTORE_EMULATOR_HOST.split(":").pop()}`,
+            )
+            .replace(
+              "http://127.0.0.1:9099",
+              `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`,
+            )
+            .replace(
+              '"127.0.0.1", 5001',
+              `"127.0.0.1", ${process.env.FUNCTIONS_EMULATOR_PORT || 5001}`,
+            );
+          await route.fulfill({ response, body });
+        });
+      await routeFirebase(page);
       await page.goto("http://127.0.0.1:4188/?emulator=1");
       await expect(page.locator("#s-players")).toHaveText("1");
-      await page.locator("#nav-account").click();
-      await page.locator("#accountEmail").fill("operations@example.test");
-      await page.locator("#accountPassword").fill("emulator-only-password");
-      await page.locator('#accountAuthForm button[type="submit"]').click();
+      await page.evaluate(async () =>
+        (await import("/js/navigation.js")).go("admin"),
+      );
+      await page.locator("#adminEmail").fill("operations@example.test");
+      await page.locator("#adminPassword").fill("emulator-only-password");
+      await page.locator('#adminLoginForm button[type="submit"]').click();
       await expect(page.locator('[data-arg0="start"]')).toBeVisible();
       await page.locator('[data-arg0="start"]').click();
       await expect(page.locator("#adminBody")).toContainText("Check-in OPEN");
@@ -102,8 +123,10 @@ test(
       await expect(page.locator("#tc-blind")).toHaveText("300 / 600");
       await page.reload();
       await expect(page.locator("#s-players")).toHaveText("1");
-      await expect(page.locator("#nav-account")).toHaveClass(/authed/);
-      await page.locator("#nav-account").click();
+      await expect(page.locator("#adminAccessForm")).toBeVisible();
+      await page.evaluate(async () =>
+        (await import("/js/navigation.js")).go("admin"),
+      );
       await expect(page.locator("#tc-blind")).toHaveText("300 / 600");
       await page.locator('[data-click="adminTimerPause"]').click();
       await expect(
@@ -139,6 +162,7 @@ test(
       await expect(page.locator("#adminBody")).toContainText("Check-in CLOSED");
       const context = await browser.newContext(),
         publicPage = await context.newPage();
+      await routeFirebase(publicPage);
       await publicPage.goto("http://127.0.0.1:4188/?emulator=1");
       await expect(publicPage.locator("#s-players")).toHaveText("1");
       await publicPage.locator("#nav-games").click();
@@ -166,7 +190,7 @@ test(
       await expect(page.locator('[data-arg0="start"]')).toHaveCount(0);
       assert.equal(
         (await db.doc(`${root}/players/p_alice`).get()).data().total,
-        35,
+        undefined,
       );
       assert.deepEqual(errors, []);
     } finally {

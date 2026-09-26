@@ -21,6 +21,17 @@ const record = (gameId, date, pts = 1, extra = {}) => ({
   ...extra,
 });
 const now = new Date("2026-09-26T12:00:00Z");
+test("monthly points follow the corrected ledger date, not the permanent game ID", () => {
+  const game = record("thursday_2026-10-01", "2026-10-03", 25);
+  const september = calculateStats(profiles, [game], now).players.a;
+  assert.equal(september.total, 25);
+  assert.equal(september.month, 0);
+  const october = calculateStats(profiles, [game], new Date("2026-10-04T12:00:00Z")).players.a;
+  assert.equal(october.month, 25);
+  const corrected = calculateStats(profiles, [{ ...game, date: "2026-09-24" }], now).players.a;
+  assert.equal(corrected.month, 25);
+  assert.equal(corrected.gameDates[0].gameId, "thursday_2026-10-01");
+});
 test("result ledger replaces stale counters and deduplicates copies by game and player", () => {
   const game = record("g", "Sep 24, 2026", 25, {
     results: [

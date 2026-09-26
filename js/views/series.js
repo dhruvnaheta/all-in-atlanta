@@ -1,4 +1,5 @@
-import { newestGameFirst } from "../league-date.js";
+import { clearDraftFields } from "../drafts.js";
+import { leagueDateKey, newestGameFirst } from "../league-date.js";
 import { runCommand } from "../commands.js";
 import { toast } from "../dom.js";
 import {
@@ -21,6 +22,11 @@ export function renderSeriesSection() {
         .map((s) => {
           const next = nextOccurrence(s.day);
           const nextLabel = fmtDate(next);
+          const existing = games.find(
+            (g) =>
+              g.seriesId === s.id &&
+              leagueDateKey(g.date) === leagueDateKey(nextLabel),
+          );
           // find most recent game for this series
           const myGames = games
             .filter((g) => g.seriesId === s.id)
@@ -36,7 +42,7 @@ export function renderSeriesSection() {
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-green" style="padding:5px 13px;font-size:12px" data-click="adminLaunchGame" data-arg0="${esc(s.id)}">+ Launch ${nextLabel}</button>
+          ${existing ? `<span style="font-size:12px">Game already scheduled for ${nextLabel}</span>` : `<button class="btn btn-green" style="padding:5px 13px;font-size:12px" data-click="adminLaunchGame" data-arg0="${esc(s.id)}">+ Launch ${nextLabel}</button>`}
           <button class="btn btn-ghost" data-click="adminDeleteSeries" data-arg0="${esc(s.id)}" aria-label="Delete series ${esc(s.name)}">Delete series</button>
         </div>
       </div>
@@ -133,6 +139,11 @@ export async function adminAddSeries() {
   const list = getSeriesList();
   list.push({ id: "s_" + Date.now(), name, venue, day, time });
   await setSeriesList(list);
+  clearDraftFields(
+    document.getElementById("sName")?.closest("[data-draft-scope]")?.dataset
+      .draftScope,
+    ["sName", "sVenue", "sDay", "sTime"],
+  );
   // Migrate existing Wicked Wolf hardcoded game if no series existed before
   adminAlert('Series "' + name + '" added.', "ok");
   renderAdmin();

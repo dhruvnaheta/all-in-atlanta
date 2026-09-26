@@ -1,3 +1,4 @@
+import { formatLeagueDate } from "../../league-date.js";
 import { getAccountState, accountCommand } from "../../account.js";
 import { validateContact } from "../../contact.js";
 import { runCommand } from "../../commands.js";
@@ -41,7 +42,7 @@ export function renderPlayerTable() {
           .reverse()
           .map(
             (g) =>
-              `${g.date}: ${typeof g.pos === "number" ? "#" + g.pos : "P"} (${g.pts}pts${g.streakBonus ? "+" + g.streakBonus + "streak" : ""})`,
+              `${formatLeagueDate(g.date)}: ${typeof g.pos === "number" ? "#" + g.pos : "P"} (${g.pts}pts${g.streakBonus ? "+" + g.streakBonus + "streak" : ""})`,
           )
           .join(" · ") || "—";
       const cellStyle = `padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;background:${bg}`;
@@ -84,7 +85,7 @@ export function openEditPlayer(key) {
           <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DISPLAY NAME</div>
           <input aria-label="Display name" id="ep_name" value="${esc(p.dn)}" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:Barlow,sans-serif;font-size:13px;outline:none"/>
         </div>
-        <p>Account owner: ${owner ? esc(owner.email || owner.uid) : "Unlinked"}</p>
+        ${owner ? `<p>Linked account: ${esc(owner.email || owner.uid)}</p>` : ""}
         ${owner ? '<button class="btn btn-ghost" id="unlinkPlayerAccount">Unlink account</button>' : ""}
         <label>Contact email<input id="ep_email" type="email" value="${esc(p.email || "")}" style="width:100%;padding:8px"/></label>
         <label>Phone<input id="ep_phone" type="tel" value="${esc(p.phone || "")}" style="width:100%;padding:8px"/></label>
@@ -196,7 +197,7 @@ export function exportPlayerCSV() {
     const hist = (p.gameDates || [])
       .map(
         (g) =>
-          `${g.date} #${typeof g.pos === "number" ? g.pos : "P"} ${g.pts}pts${g.streakBonus ? "+" + g.streakBonus + "streak" : ""}`,
+          `${formatLeagueDate(g.date)} #${typeof g.pos === "number" ? g.pos : "P"} ${g.pts}pts${g.streakBonus ? "+" + g.streakBonus + "streak" : ""}`,
       )
       .join("; ");
     const cols = [

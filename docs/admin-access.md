@@ -1,5 +1,7 @@
 # Adding administrators
 
+Open `/admin` directly to sign in. Public navigation has no admin or account link.
+
 On `/admin/`, use **Administrators → Add administrator** and enter an email.
 This grants full administration access, including the ability to add more administrators.
 Existing accounts keep their passwords and other custom claims. New emails get an

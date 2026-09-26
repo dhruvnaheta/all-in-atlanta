@@ -1,3 +1,4 @@
+import { leagueDateKey } from "../js/league-date.js";
 import { mergePlayers } from "./merge-players.js";
 import { LEAGUE_PATH, safeId, playerId } from "../js/schema.js";
 import {
@@ -35,7 +36,7 @@ export async function leagueCommand(db, request, now = new Date()) {
       ref("operations/control"),
       ref("settings/current"),
     );
-    if (!control.data()?.writesEnabled)
+    if (control.exists && control.data()?.writesEnabled !== true)
       throw new Error(
         "League maintenance is in progress. Please try again shortly.",
       );
@@ -66,12 +67,23 @@ export async function leagueCommand(db, request, now = new Date()) {
         await tx.get(ref(`series/${safeId(request.seriesId || "")}`))
       ).data();
       if (!series) throw new Error("Recurring series not found.");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(request.date || ""))
+      if (!request.date || leagueDateKey(request.date) !== request.date)
         throw new Error("Invalid game date.");
-      const id = `${series.id}_${request.date}`;
-      const path = `games/${safeId(id)}`;
-      if ((await tx.get(ref(path))).exists)
+      const games = await collection("games");
+      if (
+        games.some((snapshot) => {
+          const existing = snapshot.data();
+          return (
+            existing.scheduled !== false &&
+            existing.seriesId === series.id &&
+            leagueDateKey(existing.date) === request.date
+          );
+        })
+      )
         throw new Error("A game already exists for this series and date.");
+      // IDs are permanent references, not reservations for a calendar date.
+      const id = db.collection(`${LEAGUE_PATH}/games`).doc().id;
+      const path = `games/${safeId(id)}`;
       const date = new Date(request.date + "T12:00:00Z").toLocaleDateString(
         "en-US",
         { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" },

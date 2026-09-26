@@ -1,3 +1,4 @@
+import { renderAdminLogin } from "./admin-login.js";
 import { renderMarkup } from "../render.js";
 import { renderPlayerTable } from "../refresh.js";
 import { isAdmin } from "../auth.js";
@@ -24,17 +25,12 @@ import {
 import { renderSeriesSection } from "./series.js";
 import { esc } from "../dom.js";
 export function openAdmin() {
-  go(isAdmin() ? "admin" : "account");
+  go("admin");
 }
 export function renderAdmin() {
   const body = document.getElementById("adminBody");
   if (!isAdmin()) {
-    renderMarkup(
-      body,
-      `<p>Administrator sign-in required.</p>
-      <a href="/account/" class="btn btn-gold" data-click="openPlayerAccount">Sign in</a>`,
-      "admin:unauthorized",
-    );
+    renderAdminLogin();
     return;
   }
   const state = _getState(),

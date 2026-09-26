@@ -12,13 +12,19 @@ import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
   savePatches,
-  checkIn,
+  checkIn as checkInOperation,
   finalizeGame,
   amendResults,
 } from "../backend/operations.js";
 import { leagueCommand } from "../backend/commands.js";
 import { advanceTimer, remainingTime } from "../js/timer.js";
 import { LEAGUE_PATH as root } from "../js/schema.js";
+const checkIn = (
+  db,
+  request,
+  now = new Date("2026-09-24T12:00:00Z"),
+  options,
+) => checkInOperation(db, request, now, options);
 let env, app, db;
 before(async () => {
   env = await initializeTestEnvironment({
@@ -70,9 +76,17 @@ test("public read boundaries and all direct client writes remain protected", asy
   await assertFails(getDoc(doc(anonymous, "aia/adminpw")));
 });
 test("public removal is rejected and administrator removal preserves the participant record", async () => {
-  await checkIn(db, { gameId: "g", action: "checkIn", key: "alice" });
+  await checkIn(
+    db,
+    { gameId: "g", action: "checkIn", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
   await assert.rejects(
-    checkIn(db, { gameId: "g", action: "remove", key: "alice" }),
+    checkIn(
+      db,
+      { gameId: "g", action: "remove", key: "alice" },
+      new Date("2026-09-24T20:00:00Z"),
+    ),
     /Administrator/,
   );
   await checkIn(
@@ -92,11 +106,19 @@ test("closing registration keeps the game running and blocks public check-in on 
   assert.equal(game.status, "running");
   assert.equal(game.registrationOpen, false);
   await assert.rejects(
-    checkIn(db, { gameId: "g", action: "checkIn", key: "alice" }),
+    checkIn(
+      db,
+      { gameId: "g", action: "checkIn", key: "alice" },
+      new Date("2026-09-24T20:00:00Z"),
+    ),
     /not open/,
   );
   await command("openRegistration");
-  await checkIn(db, { gameId: "g", action: "checkIn", key: "alice" });
+  await checkIn(
+    db,
+    { gameId: "g", action: "checkIn", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
   await assert.rejects(
     savePatches(db, {
       activeGameId: "g",
@@ -114,7 +136,7 @@ test("closing registration keeps the game running and blocks public check-in on 
 test("launch and activation are atomic, duplicate launch is rejected, and stale commands fail", async () => {
   const result = await command("launchGame", {
     seriesId: "s",
-    date: "2026-09-24",
+    date: "2026-10-01",
   });
   const active = (await db.doc(`${root}/settings/current`).get()).data()
     .activeGameId;
@@ -128,7 +150,7 @@ test("launch and activation are atomic, duplicate launch is rejected, and stale 
     leagueCommand(db, {
       action: "launchGame",
       seriesId: "s",
-      date: "2026-09-24",
+      date: "2026-10-01",
       expectedActiveGameId: active,
     }),
     /already exists/,
@@ -183,12 +205,16 @@ test("concurrent timer control allows one change and rejects the competing revis
 test("concurrent check-ins and result submissions retain attendance and award points once", async () => {
   await Promise.all(
     ["alice", "bob"].map((key) =>
-      checkIn(db, {
-        gameId: "g",
-        action: "checkIn",
-        key,
-        profile: { dn: key },
-      }),
+      checkIn(
+        db,
+        {
+          gameId: "g",
+          action: "checkIn",
+          key,
+          profile: { dn: key },
+        },
+        new Date("2026-09-24T20:00:00Z"),
+      ),
     ),
   );
   const receipts = await Promise.all(
@@ -314,7 +340,11 @@ test("admin edits cannot override stats; finalization rebuilds from earlier resu
     seriesId: "s",
     results: [{ key: "alice", pts: 18, pos: 2 }],
   });
-  await checkIn(db, { gameId: "g", action: "checkIn", key: "alice" });
+  await checkIn(
+    db,
+    { gameId: "g", action: "checkIn", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
   await finalizeGame(
     db,
     { gameId: "g", positions: { alice: 1 } },
@@ -340,7 +370,11 @@ test("admin edits cannot override stats; finalization rebuilds from earlier resu
 });
 
 test("historical corrections replace points without changing attendance or the active game", async () => {
-  await checkIn(db, { action: "checkIn", gameId: "g", key: "alice" });
+  await checkIn(
+    db,
+    { action: "checkIn", gameId: "g", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
   await finalizeGame(db, { gameId: "g", stopped: true });
   await db.doc(`${root}/settings/current`).set({ activeGameId: "next" });
   const ref = db.doc(`${root}/history/game_g`);
@@ -376,13 +410,21 @@ test("historical corrections replace points without changing attendance or the a
 });
 
 test("historical corrections validate placements and honor maintenance lock", async () => {
-  await checkIn(db, { action: "checkIn", gameId: "g", key: "alice" });
-  await checkIn(db, {
-    action: "checkIn",
-    gameId: "g",
-    key: "bob",
-    profile: { dn: "Bob" },
-  });
+  await checkIn(
+    db,
+    { action: "checkIn", gameId: "g", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
+  await checkIn(
+    db,
+    {
+      action: "checkIn",
+      gameId: "g",
+      key: "bob",
+      profile: { dn: "Bob" },
+    },
+    new Date("2026-09-24T20:00:00Z"),
+  );
   await finalizeGame(db, { gameId: "g", stopped: true });
   const ref = db.doc(`${root}/history/game_g`);
   const before = (await ref.get()).data();
@@ -440,7 +482,11 @@ test("first series saves without settings; active-game preconditions cannot be s
 });
 
 test("historical metadata corrections update game and ledger together and recalculate monthly points", async () => {
-  await checkIn(db, { action: "checkIn", gameId: "g", key: "alice" });
+  await checkIn(
+    db,
+    { action: "checkIn", gameId: "g", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
   await finalizeGame(db, { gameId: "g", positions: { alice: "1" } });
   const ref = db.doc(`${root}/history/game_g`);
   const before = (await ref.get()).data();
@@ -477,4 +523,133 @@ test("historical metadata corrections update game and ledger together and recalc
   assert.equal(stats.total, 25);
   assert.equal(stats.games, 1);
   await assert.rejects(amendResults(db, request), /changed elsewhere/);
+});
+
+test("fresh database supports public reads and the first admin save and launch", async () => {
+  await env.clearFirestore();
+  const publicDb = env.unauthenticatedContext().firestore();
+  await assertSucceeds(getDocs(collection(publicDb, `${root}/games`)));
+  await assertSucceeds(getDoc(doc(publicDb, `${root}/settings/current`)));
+  await assertFails(getDocs(collection(publicDb, `${root}/playerContacts`)));
+  await savePatches(db, {
+    activeGameId: null,
+    patches: [
+      {
+        path: "series/first",
+        create: true,
+        after: { id: "first", name: "First" },
+      },
+    ],
+  });
+  const launched = await leagueCommand(db, {
+    action: "launchGame",
+    seriesId: "first",
+    date: "2026-10-01",
+    expectedActiveGameId: null,
+  });
+  await leagueCommand(db, {
+    action: "start",
+    expectedActiveGameId: launched.activeGameId,
+  });
+  await assertSucceeds(getDocs(collection(publicDb, `${root}/games`)));
+});
+
+test("explicit control records retain publication and maintenance gates", async () => {
+  const publicDb = env.unauthenticatedContext().firestore();
+  for (const control of [{}, { published: false, writesEnabled: false }]) {
+    await db.doc(`${root}/operations/control`).set(control);
+    await assertFails(getDocs(collection(publicDb, `${root}/games`)));
+    await assert.rejects(command("closeRegistration"), /maintenance/);
+    await assert.rejects(
+      savePatches(db, {
+        activeGameId: "g",
+        patches: [
+          {
+            path: "series/new",
+            create: true,
+            after: { id: "new", name: "New" },
+          },
+        ],
+      }),
+      /maintenance/,
+    );
+    await assert.rejects(
+      checkIn(
+        db,
+        { gameId: "g", action: "checkIn", key: "alice" },
+        new Date("2026-09-24T20:00:00Z"),
+      ),
+      /maintenance/,
+    );
+  }
+});
+
+test("moving a legacy game frees its original date without replacing its linked data", async () => {
+  const id = "s_2026-10-01";
+  await db
+    .doc(`${root}/games/${id}`)
+    .set({
+      id,
+      seriesId: "s",
+      date: "Oct 1, 2026",
+      status: "running",
+      registrationOpen: true,
+      scheduled: true,
+    });
+  await db.doc(`${root}/settings/current`).set({ activeGameId: id });
+  await checkIn(
+    db,
+    { gameId: id, action: "checkIn", key: "alice" },
+    new Date("2026-10-01T20:00:00Z"),
+  );
+  await finalizeGame(db, { gameId: id, positions: { alice: "1" } });
+  const historyRef = db.doc(`${root}/history/game_${id}`);
+  await amendResults(db, {
+    historyId: `game_${id}`,
+    before: (await historyRef.get()).data(),
+    positions: { alice: "1" },
+    date: "2026-10-03",
+  });
+  const launch = (date) =>
+    leagueCommand(db, { action: "launchGame", seriesId: "s", date });
+  const newGame = await launch("2026-10-01");
+  assert.notEqual(newGame.game.id, id);
+  assert.equal(
+    (await db.doc(`${root}/games/${id}`).get()).data().date,
+    "2026-10-03",
+  );
+  assert.equal((await historyRef.get()).data().gameId, id);
+  assert.equal(
+    (await db.doc(`${root}/games/${id}/participants/p_alice`).get()).exists,
+    true,
+  );
+  await assert.rejects(launch("2026-10-03"), /already exists/);
+  await assert.rejects(launch("2026-10-01"), /already exists/);
+  await assert.rejects(launch("2026-02-30"), /Invalid game date/);
+  const concurrent = await Promise.allSettled([
+    launch("2026-10-08"),
+    launch("2026-10-08"),
+  ]);
+  assert.equal(concurrent.filter((r) => r.status === "fulfilled").length, 1);
+});
+
+test("server refuses public attendance outside the game's Atlanta date", async () => {
+  for (const now of ["2026-09-24T03:59:00Z", "2026-09-25T04:00:00Z"])
+    await assert.rejects(
+      checkIn(
+        db,
+        { gameId: "g", action: "checkIn", key: "alice" },
+        new Date(now),
+      ),
+      /not open/,
+    );
+  assert.equal(
+    (await db.doc(`${root}/games/g/participants/p_alice`).get()).exists,
+    false,
+  );
+  await checkIn(
+    db,
+    { gameId: "g", action: "checkIn", key: "alice" },
+    new Date("2026-09-25T03:59:00Z"),
+  );
 });

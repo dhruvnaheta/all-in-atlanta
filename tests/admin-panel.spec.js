@@ -10,10 +10,12 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ contentType: "text/javascript", body: mock }),
   );
   await page.goto("/");
-  await page.locator("#nav-account").click();
-  await page.locator("#accountEmail").fill("admin@example.test");
-  await page.locator("#accountPassword").fill("test-only");
-  await page.locator("#accountPassword").press("Enter");
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
+  await page.locator("#adminEmail").fill("admin@example.test");
+  await page.locator("#adminPassword").fill("test-only");
+  await page.locator("#adminPassword").press("Enter");
   await expect(page.locator("#page-admin")).toBeVisible();
 });
 test("empty series validation is visible at the form and names appear in confirmations", async ({
@@ -151,9 +153,7 @@ test("admin route survives reload and hides controls after sign-out", async ({
   );
   await page.locator('[data-click="logout"]').click();
   await page.goto("/admin/");
-  await expect(page.locator("#adminBody")).toContainText(
-    "Administrator sign-in required",
-  );
+  await expect(page.locator("#adminLoginForm")).toBeVisible();
   await expect(page.locator('[data-click="exportPlayerCSV"]')).toHaveCount(0);
 });
 
@@ -195,4 +195,150 @@ test("admin email grants preserve drafts during refresh and report failures for 
     "Administrator access granted to new@example.test",
   );
   await expect(page.getByLabel("Administrator email")).toHaveValue("");
+});
+
+test("game controls refresh for snapshots before and after command completion", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  for (const delay of [-1, 0, 50]) {
+    await page.evaluate(async (delay) => {
+      const { LS } = await import("/js/store.js");
+      const { configureCommands } = await import("/js/commands.js");
+      const { transitionGame } = await import("/js/game-model.js");
+      const id = LS.get("activeGameId");
+      LS.applyRemote(
+        "gameList",
+        LS.get("gameList").map((g) =>
+          g.id === id
+            ? {
+                ...g,
+                status: "scheduled",
+                registrationOpen: false,
+                finalized: false,
+              }
+            : g,
+        ),
+      );
+      configureCommands(async ({ action }) => {
+        const update = () =>
+          LS.applyRemote(
+            "gameList",
+            LS.get("gameList").map((g) =>
+              g.id === id ? transitionGame(g, action) : g,
+            ),
+          );
+        if (delay < 0) {
+          update();
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        } else setTimeout(update, delay);
+        return { saved: true };
+      });
+    }, delay);
+    await page.locator('[data-arg0="start"]').click();
+    await expect(page.locator(".gcp-label")).toHaveText(
+      "Running · Check-in OPEN",
+    );
+    await page.locator('[data-arg0="closeRegistration"]').click();
+    await expect(page.locator(".gcp-label")).toHaveText(
+      "Running · Check-in CLOSED",
+    );
+    await expect(page.locator('[data-arg0="openRegistration"]')).toBeEnabled();
+  }
+  expect(errors).toEqual([]);
+});
+
+test("confirmed game changes render without waiting for the listener and preserve newer snapshots", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    const { configureCommands } = await import("/js/commands.js");
+    const { transitionGame } = await import("/js/game-model.js");
+    const id = LS.get("activeGameId");
+    LS.applyRemote(
+      "gameList",
+      LS.get("gameList").map((g) =>
+        g.id === id
+          ? {
+              ...g,
+              status: "scheduled",
+              registrationOpen: false,
+              finalized: false,
+            }
+          : g,
+      ),
+    );
+    configureCommands(async ({ action }) => ({
+      saved: true,
+      game: transitionGame(
+        LS.get("gameList").find((g) => g.id === id),
+        action,
+      ),
+    }));
+  });
+  await page.locator('[data-arg0="start"]').click();
+  await expect(page.locator(".gcp-label")).toHaveText(
+    "Running · Check-in OPEN",
+  );
+  await page.locator('[data-arg0="closeRegistration"]').click();
+  await expect(page.locator(".gcp-label")).toHaveText(
+    "Running · Check-in CLOSED",
+  );
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    const { configureCommands } = await import("/js/commands.js");
+    const { transitionGame } = await import("/js/game-model.js");
+    const id = LS.get("activeGameId");
+    configureCommands(async ({ action }) => {
+      const result = transitionGame(
+        LS.get("gameList").find((g) => g.id === id),
+        action,
+      );
+      LS.applyRemote(
+        "gameList",
+        LS.get("gameList").map((g) =>
+          g.id === id ? transitionGame(result, "complete") : g,
+        ),
+      );
+      return { saved: true, game: result };
+    });
+  });
+  await page.locator('[data-arg0="openRegistration"]').click();
+  await expect(page.locator(".gcp-label")).toHaveText("Game completed");
+});
+
+test("launch availability follows the current game date, not its legacy ID", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    const { nextOccurrence, fmtDate } = await import("/js/schedule.js");
+    const { leagueDateKey } = await import("/js/league-date.js");
+    const series = LS.get("seriesList")[0];
+    const date = fmtDate(nextOccurrence(series.day));
+    LS.applyRemote("gameList", [
+      {
+        id: `${series.id}_${leagueDateKey(date)}`,
+        seriesId: series.id,
+        name: "Existing game",
+        date,
+        status: "scheduled",
+        scheduled: true,
+      },
+    ]);
+  });
+  await expect(page.locator('[data-click="adminLaunchGame"]')).toHaveCount(0);
+  await expect(page.locator("#adminBody")).toContainText(
+    "Game already scheduled",
+  );
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applyRemote(
+      "gameList",
+      LS.get("gameList").map((game) => ({ ...game, date: "2000-01-01" })),
+    );
+  });
+  await expect(page.locator('[data-click="adminLaunchGame"]')).toBeVisible();
 });

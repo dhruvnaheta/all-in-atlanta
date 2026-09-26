@@ -5,7 +5,7 @@ import { toast } from "../dom.js";
 export async function logout() {
   await signOut();
   renderAdmin();
-  go("account");
+  go("admin");
 }
 export async function resetPassword() {
   await sendPasswordReset();

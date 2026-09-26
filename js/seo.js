@@ -36,13 +36,6 @@ export const seoPages = {
       "Review All In Atlanta tournament eligibility, free entry, bonus chips and prize rules. Players must be 21 or older. No purchase necessary to enter or win.",
     label: "Eligibility and promotions",
   },
-  account: {
-    title: "Admin | All In Atlanta",
-    description:
-      "Administrator sign-in for managing All In Atlanta poker league games and player results.",
-    label: "Admin",
-    noindex: true,
-  },
   admin: {
     title: "Admin | All In Atlanta",
     description: "Manage All In Atlanta games and player results.",

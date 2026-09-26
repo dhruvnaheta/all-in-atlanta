@@ -11,7 +11,6 @@ const pages = {
   rules: "League Rules",
   restrictions: "Eligibility & Promotions",
   tv: "Timer",
-  account: "Admin",
   admin: "Admin",
 };
 export function initializeNavigation() {
@@ -74,6 +73,10 @@ document.addEventListener("click", (event) => {
     toggleMobileMenu();
 });
 export function go(page, { history = true } = {}) {
+  if (page === "account") {
+    page = "admin";
+    window.history.replaceState(null, "", environmentURL("/admin/"));
+  }
   if (!Object.hasOwn(pages, page)) return;
   document.getElementById("mobileMore").hidden = true;
   document.getElementById("mobt-more").setAttribute("aria-expanded", "false");
@@ -81,21 +84,17 @@ export function go(page, { history = true } = {}) {
   if (history && location.pathname !== path)
     window.history.pushState(null, "", environmentURL(path));
   updateSEO(page);
-  document
-    .querySelectorAll('a[data-click="go"], a[data-click="openAccount"]')
-    .forEach((link) => {
-      if (
-        new URL(link.href).pathname === (page === "admin" ? "/account/" : path)
-      )
-        link.setAttribute("aria-current", "page");
-      else link.removeAttribute("aria-current");
-    });
+  document.querySelectorAll('a[data-click="go"]').forEach((link) => {
+    if (new URL(link.href).pathname === path)
+      link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
   document.querySelectorAll(".page").forEach((p) => {
     p.classList.remove("active");
     p.style.display = "";
   });
   document
-    .querySelectorAll(".nav-link, .nav-account-btn")
+    .querySelectorAll(".nav-link")
     .forEach((l) => l.classList.remove("active"));
   document
     .querySelectorAll(".mob-tab, .mobile-more a")
@@ -103,9 +102,9 @@ export function go(page, { history = true } = {}) {
   const pageEl = document.getElementById("page-" + page);
   if (!pageEl) return;
   pageEl.classList.add("active");
-  if (page === "account")
+  if (page === "admin")
     refreshToken().catch((error) =>
-      toast("Unable to refresh account access. " + error.message),
+      toast("Unable to refresh admin access. " + error.message),
     );
   // TV page: fullscreen, hide nav/footer/tabs
   const isTV = page === "tv";
@@ -117,7 +116,7 @@ export function go(page, { history = true } = {}) {
   if (isTV) {
     renderTVTimer();
   } else {
-    const navPage = page === "admin" ? "account" : page;
+    const navPage = page;
     const navEl = document.getElementById("nav-" + navPage);
     if (navEl) navEl.classList.add("active");
     const mobEl = document.getElementById("mobt-" + navPage);

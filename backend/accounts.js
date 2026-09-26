@@ -89,7 +89,7 @@ export async function playerAccount(db, request, now = new Date(), auth) {
   };
   return db.runTransaction(async (tx) => {
     const control = await tx.get(ref("operations/control"));
-    if (control.data()?.writesEnabled !== true)
+    if (control.exists && control.data()?.writesEnabled !== true)
       throw new Error(
         "League maintenance is in progress. Please try again shortly.",
       );

@@ -1,3 +1,4 @@
+import { formatLeagueDate } from "../league-date.js";
 import { cleanPlayerName, hasPlayerName } from "../player-search.js";
 import {
   isCheckInOpen,
@@ -70,7 +71,7 @@ export function renderGamePage() {
 
   let inner = `
     <div class="gsc-header">
-      <div><div class="gsc-venue">${esc(venueName)}</div><div class="gsc-sub">${esc(venueSub)}${activeGame?.date ? " · " + esc(activeGame.date) : ""}</div></div>
+      <div><div class="gsc-venue">${esc(venueName)}</div><div class="gsc-sub">${esc(venueSub)}${activeGame?.date ? " · " + esc(formatLeagueDate(activeGame.date)) : ""}</div></div>
       <div>${stateBadge(state, canCheckIn)}</div>
     </div>
     <div class="gsc-meta">

@@ -13,7 +13,7 @@
     "test:migration": "firebase emulators:exec --project demo-all-in-atlanta --only firestore \"node --test tests/backup.integration.js\"",
     "test:e2e": "firebase emulators:exec --project demo-all-in-atlanta --only firestore,auth,functions \"node --test tests/browser.integration.js\"",
     "test:operations-e2e": "firebase emulators:exec --project demo-all-in-atlanta --only firestore,auth,functions \"node --test tests/operations-browser.integration.js\"",
-    "test:accounts": "firebase emulators:exec --project demo-all-in-atlanta --only firestore,auth,functions \"node --test --test-concurrency=1 tests/accounts.integration.js tests/account-browser.integration.js\"",
+    "test:accounts": "firebase emulators:exec --project demo-all-in-atlanta --only firestore,auth,functions \"node --test --test-concurrency=1 tests/accounts.integration.js\"",
     "seo:generate": "node scripts/generate-seo.js",
     "seo:check": "node scripts/generate-seo.js --check"
   },

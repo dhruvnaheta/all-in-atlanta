@@ -96,7 +96,7 @@ Firebase admin claims remain the authorization boundary; no additional sign-in
 provider or account migration is introduced by these changes.
 
 Public navigation uses `/about/`, `/rankings/`, `/games/`, `/rules/`,
-`/restrictions/`, `/account/`, and `/tv/`. The root HTML files with Jekyll
+`/restrictions/`, `/admin/`, and `/tv/`. The root HTML files with Jekyll
 front matter include `index.html` at build time so GitHub Pages serves each
 address directly. Keep these route files when publishing from the repository
 root. The local preview server maps these same paths to the app shell.

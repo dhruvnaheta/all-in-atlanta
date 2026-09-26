@@ -75,3 +75,19 @@ test("closed registration rejects public check-ins; removals require an administ
     [],
   );
 });
+
+test("public check-in uses Atlanta's current date while hosts can add late players", () => {
+  const now = new Date("2026-10-02T02:00:00Z");
+  for (const date of ["2026-09-30", "2026-10-01", "Oct 1, 2026", "2026-10-02", "invalid"]) {
+    const snapshot = {
+      activeGameId: "g",
+      gameList: [{ id: "g", status: "running", registrationOpen: true, date, tonight: [] }],
+      players: { alice: { key: "alice", dn: "Alice" } },
+    };
+    const request = { action: "checkIn", key: "alice" };
+    if (["2026-10-01", "Oct 1, 2026"].includes(date))
+      assert.equal(applyCheckIn(snapshot, request, now).tonight.length, 1);
+    else assert.throws(() => applyCheckIn(snapshot, request, now), /not open/);
+    assert.equal(applyCheckIn(snapshot, request, now, { admin: true }).tonight.length, 1);
+  }
+});

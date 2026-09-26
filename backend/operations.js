@@ -16,7 +16,7 @@ import { DEFAULT_STATE } from "../js/sync.js";
 
 async function writable(db, tx) {
   const control = await tx.get(db.doc(`${LEAGUE_PATH}/operations/control`));
-  if (!control.exists || control.data().writesEnabled !== true)
+  if (control.exists && control.data()?.writesEnabled !== true)
     throw new Error(
       "League maintenance is in progress. Please try again shortly.",
     );

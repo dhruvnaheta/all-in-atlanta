@@ -1,3 +1,4 @@
+import { atlantaDateKey } from "../js/league-date.js";
 import test, { before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -54,6 +55,7 @@ beforeEach(async () => {
     "games/g": {
       id: "g",
       name: "Test game",
+      date: atlantaDateKey(),
       status: "running",
       registrationOpen: true,
     },

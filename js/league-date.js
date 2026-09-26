@@ -58,3 +58,11 @@ export function newestGameFirst(a, b) {
     leagueDateKey(a.date) || "",
   );
 }
+
+export function formatLeagueDate(value) {
+  const key = leagueDateKey(value);
+  if (!key) return value || "";
+  return new Date(`${key}T12:00:00Z`).toLocaleDateString("en-US", {
+    timeZone: "UTC", month: "short", day: "numeric", year: "numeric",
+  });
+}

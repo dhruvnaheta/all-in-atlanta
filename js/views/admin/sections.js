@@ -1,4 +1,5 @@
-import { newestGameFirst } from "../../league-date.js";
+import { isCheckInOpen } from "../../public-games.js";
+import { newestGameFirst, formatLeagueDate } from "../../league-date.js";
 import {
   timerGetRemaining,
   timerGetProgress,
@@ -9,6 +10,7 @@ import { esc, playerFieldId } from "../../dom.js";
 import { previewNextStreak } from "../../scoring.js";
 export function gameButtons(state, game) {
   const registrationOpen = game?.registrationOpen;
+  const canCheckIn = isCheckInOpen(game);
   const gcBtns =
     state === "scheduled" && game
       ? '<button class="btn btn-green" data-click="adminSetState" data-arg0="start">▶ Start Game</button>'
@@ -19,14 +21,14 @@ export function gameButtons(state, game) {
     gcBtns,
     stateLabels: {
       scheduled: "Game scheduled",
-      running: registrationOpen
+      running: canCheckIn
         ? "Running · Check-in OPEN"
         : "Running · Check-in CLOSED",
       completed: "Game completed",
     },
     dotCls: {
       scheduled: "idle",
-      running: registrationOpen ? "open" : "closed",
+      running: canCheckIn ? "open" : "closed",
       completed: "idle",
     },
   };
@@ -267,7 +269,7 @@ export function historyRows(history) {
       <button type="button" aria-expanded="false" aria-controls="gh_${idx}" style="width:100%;border:0;text-align:left;color:inherit;font:inherit;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg2)" data-click="toggleGameHist" data-arg0="gh_${idx}">
         <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           ${badge}
-          <span style="font-weight:600;font-size:13px">${esc(h.gameName || h.date)}</span>${h.gameName ? `<span style="font-size:12px;color:var(--muted)">${esc(h.date)}</span>` : ""}
+          <span style="font-weight:600;font-size:13px">${esc(h.gameName || formatLeagueDate(h.date))}</span>${h.gameName ? `<span style="font-size:12px;color:var(--muted)">${esc(formatLeagueDate(h.date))}</span>` : ""}
           <span style="font-size:12px;color:var(--muted)">${h.results.length} players${!isStopped ? " · 🏆 " + esc(winner) : ""}</span>
         </span>
         <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px" class="gh-toggle-lbl">▼ Details</span>

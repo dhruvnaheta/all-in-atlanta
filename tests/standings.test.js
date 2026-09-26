@@ -83,3 +83,10 @@ test("completed attendance comes from saved results and missing history is expli
   );
   assert.equal(completedResults({ id: "other" }, []), null);
 });
+
+test("game date labels preserve the calendar date across storage formats", async () => {
+  const { formatLeagueDate } = await import("../js/league-date.js");
+  assert.equal(formatLeagueDate("2026-10-01"), "Oct 1, 2026");
+  assert.equal(formatLeagueDate("Oct 1, 2026"), "Oct 1, 2026");
+  assert.equal(formatLeagueDate("2026-10-03"), "Oct 3, 2026");
+});

@@ -1,6 +1,13 @@
+import { LS } from "../../store.js";
+import { equal } from "../../schema.js";
 import { runCommand } from "../../commands.js";
 import { clearGameDrafts } from "../../drafts.js";
-import { _getTonight, getActiveGameId, getHistory } from "../../state.js";
+import {
+  _getTonight,
+  getActiveGame,
+  getActiveGameId,
+  getHistory,
+} from "../../state.js";
 import { timerReset, timerPause, timerStart } from "../../timer-controller.js";
 import {
   renderAdmin,
@@ -13,10 +20,22 @@ import {
 import { toast, playerFieldId, esc } from "../../dom.js";
 import { askConfirm, adminAlert } from "./dialogs.js";
 import { commitResults, correctResults } from "../../results.js";
-import { leagueDateKey } from "../../league-date.js";
+import { leagueDateKey, formatLeagueDate } from "../../league-date.js";
 import { ptFor } from "../../scoring.js";
 export async function adminSetState(action) {
-  await runCommand(action);
+  const before = getActiveGame();
+  const receipt = await runCommand(action);
+  // The callable response can beat the live listener. Publish confirmed state
+  // immediately, but never replace a newer snapshot received during the request.
+  if (receipt?.game && before && equal(getActiveGame(), before)) {
+    LS.applyRemote(
+      "gameList",
+      LS.get("gameList", []).map((game) =>
+        game.id === before.id ? receipt.game : game,
+      ),
+    );
+  }
+  renderAdmin();
   toast(
     {
       start: "Game started.",
@@ -117,7 +136,9 @@ export function submitResults() {
 }
 
 function getHistoryGameName(record) {
-  return record.date ? "All In Atlanta — " + record.date : "All In Atlanta";
+  return record.date
+    ? "All In Atlanta — " + formatLeagueDate(record.date)
+    : "All In Atlanta";
 }
 let editingRecord;
 let correcting = false;
@@ -127,9 +148,9 @@ export function adminEditResults(id) {
   if (!record) return;
   editingRecord = structuredClone(record);
   const editor = document.getElementById("historyResultsEditor");
-  editor.innerHTML = `<div class="asec-title">Edit played game — ${esc(record.gameName || record.date)}</div>
-    <label>Game name <input id="historyGameName" type="text" maxlength="160" value="${esc(record.gameName || getHistoryGameName(record))}"></label>
-    <label>Game date <input id="historyGameDate" type="date" value="${esc(leagueDateKey(record.date) || "")}"></label>
+  editor.innerHTML = `<div class="asec-title">Edit played game — ${esc(record.gameName || formatLeagueDate(record.date))}</div>
+    <div class="np-fields"><label class="np-field"><span class="np-label">Game name</span><input class="np-input" id="historyGameName" type="text" maxlength="160" value="${esc(record.gameName || getHistoryGameName(record))}"></label>
+    <label class="np-field"><span class="np-label">Game date</span><input class="np-input" id="historyGameDate" type="date" value="${esc(leagueDateKey(record.date) || "")}"></label></div>
     <p>Correct the game details or finishing order. Date changes update monthly standings and attendance streaks.</p>
     <p>Enter the actual finishing order. Saving replaces this game's points; attendance stays the same. Unplaced players receive 1 participation point.</p>
     ${record.results
@@ -142,8 +163,22 @@ export function adminEditResults(id) {
       )
       .join("")}
     <div role="alert" data-result-error></div>
-    <button class="btn btn-green" data-click="adminSaveResults">Save corrected results</button>
+    <button class="btn btn-green" data-click="adminSaveResults">Save game</button>
     <button class="btn btn-ghost" data-click="adminCancelResults">Cancel</button>`;
+  const selects = [...editor.querySelectorAll("[data-result-index]")];
+  for (const select of selects) {
+    select.addEventListener("change", () => {
+      const error = editor.querySelector("[data-result-error]");
+      if (
+        error.textContent !== "Two players share the same finishing position."
+      )
+        return;
+      const positions = selects
+        .map((el) => el.value)
+        .filter((pos) => pos !== "p");
+      if (new Set(positions).size === positions.length) error.textContent = "";
+    });
+  }
   editor.scrollIntoView({ block: "start", behavior: "smooth" });
   editor.querySelector("select")?.focus({ preventScroll: true });
 }

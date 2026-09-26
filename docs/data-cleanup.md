@@ -2,6 +2,14 @@
 
 ## September 26 follow-up
 
+At 16:33 UTC, the requested functions deployment was retried as
+`carl@thundercompute.com` and failed before deployment. Google reported missing
+`serviceusage.services.use` on the project and `iam.serviceAccounts.actAs` on
+`all-in-atlanta-pok@appspot.gserviceaccount.com`. The guarded cleanup dry run
+also failed its first Firestore read with `PERMISSION_DENIED`; no new backup
+was created and no league records were changed. The August fixture removal
+and `5Paces` rename still require authorized database access and a fresh backup.
+
 Public Firestore reads reconfirmed the August 13 fixture with 40 results,
 `5Paces` in series venues and game names, and 28 of 29 history records with
 `stopped: true` and no finishing placements. These records contain participation

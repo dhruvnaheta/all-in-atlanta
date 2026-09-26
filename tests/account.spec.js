@@ -10,31 +10,39 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ contentType: "text/javascript", body: mock }),
   );
   await page.goto("/");
-  await expect(page.locator("#nav-account")).toHaveText("Admin");
-  await expect(page.locator("#mobileAccountLabel")).toHaveText("Admin");
+  await expect(
+    page.locator(
+      "nav a[href*=admin], nav a[href*=account], #mobTabs a[href*=admin], #mobTabs a[href*=account]",
+    ),
+  ).toHaveCount(0);
 });
 test("admin sign-in replaces player signup and preserves password recovery", async ({
   page,
 }) => {
-  await page.locator("#nav-account").click();
-  await expect(page.locator("#accountTitle")).toHaveText("Admin");
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
+  await expect(page.locator("#page-admin h1")).toHaveText("Admin");
   await expect(page.locator('[data-arg0="signup"]')).toHaveCount(0);
   await page.getByRole("button", { name: "Forgot password?" }).click();
-  await page.locator("#accountEmail").fill("admin@example.test");
+  await page.locator("#adminEmail").fill("admin@example.test");
   await page.getByRole("button", { name: "Send reset link" }).click();
-  await expect(page.locator("#accountAuthMessage")).toContainText("reset link");
+  await expect(page.locator("#adminLoginMessage")).toContainText("reset link");
 });
 test("individual accounts cannot enter the admin area or player account screens", async ({
   page,
 }) => {
-  await page.locator("#nav-account").click();
-  await page.locator("#accountEmail").fill("alice@example.test");
-  await page.locator("#accountPassword").fill("test-only");
-  await page.locator('#accountAuthForm button[type="submit"]').click();
-  await expect(page.locator("#accountAuthMessage")).toContainText(
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
+  await page.locator("#adminEmail").fill("alice@example.test");
+  await page.locator("#adminPassword").fill("test-only");
+  await page.locator('#adminLoginForm button[type="submit"]').click();
+  await expect(page.locator("#adminLoginMessage")).toContainText(
     "Administrator access required",
   );
-  await expect(page.locator("#page-admin")).not.toHaveClass(/active/);
+  await expect(page.locator("#adminLoginForm")).toBeVisible();
+  await expect(page.locator("#adminAccessForm")).toHaveCount(0);
   await expect(
     page.locator("#accountLinkForm, #accountProfileForm"),
   ).toHaveCount(0);
@@ -45,25 +53,34 @@ test("individual accounts cannot enter the admin area or player account screens"
   ).toBeNull();
 });
 test("admin can sign in, reopen controls, and sign out", async ({ page }) => {
-  await page.locator("#nav-account").click();
-  await page.locator("#accountEmail").fill("admin@example.test");
-  await page.locator("#accountPassword").fill("test-only");
-  await page.locator('#accountAuthForm button[type="submit"]').click();
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
+  await page.locator("#adminEmail").fill("admin@example.test");
+  await page.locator("#adminPassword").fill("test-only");
+  await page.locator('#adminLoginForm button[type="submit"]').click();
   await expect(page.locator("#page-admin")).toHaveClass(/active/);
   await expect(page.locator("#accountApprovalSection")).toHaveCount(0);
-  await page.locator('[data-click="openPlayerAccount"]').click();
-  await expect(page.locator("#nav-account")).toHaveText("Admin");
+  await expect(
+    page.locator(
+      "nav a[href*=admin], nav a[href*=account], #mobTabs a[href*=admin], #mobTabs a[href*=account]",
+    ),
+  ).toHaveCount(0);
   await page.locator("#nav-home").click();
-  await page.locator("#nav-account").click();
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
   await expect(page.locator("#page-admin")).toHaveClass(/active/);
   await page.locator('[data-click="logout"]').click();
-  await expect(page.locator("#accountAuthForm")).toBeVisible();
+  await expect(page.locator("#adminLoginForm")).toBeVisible();
 });
 test("Google popup errors preserve credentials and allow retry", async ({
   page,
 }) => {
-  await page.locator("#nav-account").click();
-  await page.locator("#accountEmail").fill("alice@example.test");
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
+  await page.locator("#adminEmail").fill("alice@example.test");
   for (const [code, message] of [
     ["auth/popup-blocked", "Allow pop-ups"],
     ["auth/popup-closed-by-user", "was canceled"],
@@ -79,14 +96,12 @@ test("Google popup errors preserve credentials and allow retry", async ({
     }, code);
     const google = page.getByRole("button", { name: "Continue with Google" });
     await google.click();
-    await expect(page.locator("#accountAuthMessage")).toContainText(message);
+    await expect(page.locator("#adminLoginMessage")).toContainText(message);
     await expect(google).toBeEnabled();
-    await expect(page.locator("#accountEmail")).toBeEnabled();
-    await expect(page.locator("#accountEmail")).toHaveValue(
-      "alice@example.test",
-    );
+    await expect(page.locator("#adminEmail")).toBeEnabled();
+    await expect(page.locator("#adminEmail")).toHaveValue("alice@example.test");
     await expect(
-      page.locator('#accountAuthForm button[type="submit"]'),
+      page.locator('#adminLoginForm button[type="submit"]'),
     ).toBeEnabled();
   }
 });
@@ -115,3 +130,16 @@ for (const width of [320, 390]) {
     await expect(page.locator("#page-tv")).toBeVisible();
   });
 }
+
+test("admin sign-in loads directly and the account route redirects", async ({
+  page,
+}) => {
+  await page.goto("/admin");
+  await expect(page.locator("#adminLoginForm")).toBeVisible();
+  await expect(page.locator("#page-admin")).toBeVisible();
+  await page.reload();
+  await expect(page.locator("#adminLoginForm")).toBeVisible();
+  const response = await page.request.get("/account/", { maxRedirects: 0 });
+  expect(response.status()).toBe(301);
+  expect(response.headers().location).toBe("/admin/");
+});

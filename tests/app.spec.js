@@ -13,10 +13,12 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator("#s-players")).toHaveText("1");
 });
 async function login(page) {
-  await page.locator("#nav-account").click();
-  await page.locator("#accountEmail").fill("admin@example.test");
-  await page.locator("#accountPassword").fill("test-only");
-  await page.locator("#accountPassword").press("Enter");
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("admin"),
+  );
+  await page.locator("#adminEmail").fill("admin@example.test");
+  await page.locator("#adminPassword").fill("test-only");
+  await page.locator("#adminPassword").press("Enter");
   await expect(page.locator("#adminBody")).toContainText("Game Control");
 }
 test("navigation, logo, rules and rankings work without globals or inline handlers", async ({
@@ -99,7 +101,7 @@ test("admin check-in, timer pause/resume and scoring preserve persisted state", 
   expect(state.p.games).toBe(2);
   expect(state.h).toHaveLength(2);
   await page.locator('[data-click="logout"]').click();
-  await expect(page.locator("#accountEmail")).toBeVisible();
+  await expect(page.locator("#adminEmail")).toBeVisible();
 });
 test("stop game asks for finishing order while check-in is open and awards finish points", async ({
   page,
@@ -283,7 +285,7 @@ test("page links survive reload and browser history", async ({ page }) => {
     "games",
     "rules",
     "restrictions",
-    "account",
+    "admin",
     "tv",
   ]) {
     await page.goto(`/${tab}/`);
@@ -524,7 +526,7 @@ test("admins can correct past results and keep their draft through live updates"
   await expect(editor.getByLabel("Game date", { exact: true })).toHaveValue(
     "2026-08-27",
   );
-  await editor.getByRole("button", { name: "Save corrected results" }).click();
+  await editor.getByRole("button", { name: "Save game" }).click();
   await expect(editor).toBeEmpty();
   expect(await page.evaluate(() => window.correctionRequest.positions)).toEqual(
     { alice: "1" },
@@ -534,6 +536,7 @@ test("admins can correct past results and keep their draft through live updates"
     date: "2026-08-27",
   });
   await expect(page.locator("#adminBody")).toContainText("Corrected Thursday");
+  await expect(page.locator("#adminBody")).toContainText("Aug 27, 2026");
   await expect(page.locator("#adminBody")).toContainText("COMPLETE");
   await page.getByRole("button", { name: "Edit results", exact: true }).click();
   await expect(editor.locator("select")).toHaveValue("1");
@@ -544,11 +547,43 @@ test("admins can correct past results and keep their draft through live updates"
     });
   });
   await editor.locator("select").selectOption("2");
-  await editor.getByRole("button", { name: "Save corrected results" }).click();
+  await editor.getByRole("button", { name: "Save game" }).click();
   await expect(editor.getByRole("alert")).toContainText("changed elsewhere");
   await expect(editor.locator("select")).toHaveValue("2");
   await expect(editor.locator("select")).toBeEnabled();
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(editor).toBeEmpty();
+});
+
+test("duplicate finish errors clear only once the positions are fixed", async ({ page }) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applyRemote("history", [{
+      _id: "past", gameId: "past-game", date: "Sep 3, 2026",
+      results: ["alice", "bob", "carol"].map((key) => ({
+        key, name: key, pos: "p", pts: 1,
+      })),
+    }]);
+    const { configureResultCorrections } = await import("/js/results.js");
+    configureResultCorrections(async ({ positions }) => {
+      const finishes = Object.values(positions).filter((pos) => pos !== "p");
+      if (new Set(finishes).size !== finishes.length)
+        throw new Error("Two players share the same finishing position.");
+      return { saved: true };
+    });
+  });
+  await login(page);
+  await page.getByRole("button", { name: "Edit results", exact: true }).click();
+  const editor = page.locator("#historyResultsEditor");
+  const selects = editor.locator("select");
+  for (let i = 0; i < 3; i++) await selects.nth(i).selectOption("1");
+  await editor.getByRole("button", { name: "Save game" }).click();
+  await expect(editor.getByRole("alert")).toContainText("same finishing position");
+  await selects.nth(0).selectOption("p");
+  await expect(editor.getByRole("alert")).toContainText("same finishing position");
+  await selects.nth(1).selectOption("p");
+  await expect(editor.getByRole("alert")).toBeEmpty();
+  await editor.getByRole("button", { name: "Save game" }).click();
   await expect(editor).toBeEmpty();
 });
 
@@ -574,7 +609,7 @@ test("emulator navigation keeps real links and reloads in local mode", async ({
   await expect(page).toHaveURL(/\/about\/\?emulator=1$/);
   await page.goForward();
   await expect(page).toHaveURL(/\/games\/\?emulator=1$/);
-  const href = await page.locator("#nav-account").getAttribute("href");
+  const href = "/admin/?emulator=1";
   expect(href).toContain("emulator=1");
   const tab = await context.newPage();
   await tab.route("https://**/*", (route) => route.abort());
@@ -582,7 +617,7 @@ test("emulator navigation keeps real links and reloads in local mode", async ({
     route.fulfill({ contentType: "text/javascript", body: mock }),
   );
   await tab.goto(href);
-  await expect(tab.locator("#page-account")).toBeVisible();
+  await expect(tab.locator("#page-admin")).toBeVisible();
   await expect(tab).toHaveURL(/emulator=1/);
 });
 
@@ -614,3 +649,25 @@ for (const admin of [false, true]) {
     await expect(page.locator("#s-players")).toHaveText("2");
   });
 }
+
+test("legacy account URL redirects to admin", async ({ page }) => {
+  await page.goto("/account/");
+  await expect(page).toHaveURL(/\/admin\/$/);
+  await expect(page.locator("#adminEmail")).toBeVisible();
+});
+
+test("saving a recurring series clears its draft fields", async ({ page }) => {
+  await login(page);
+  await page.getByText("+ ADD RECURRING GAME", { exact: true }).click();
+  await page.locator("#sName").fill("Friday Poker");
+  await page.locator("#sVenue").fill("Test Venue");
+  await page.locator("#sDay").selectOption("5");
+  await page.locator("#sTime").fill("7:00 PM");
+  await page.getByRole("button", { name: "Save Series", exact: true }).click();
+  await expect(page.locator("#sName")).toHaveValue("");
+  await expect(page.locator("#sVenue")).toHaveValue("");
+  await expect(page.locator("#sDay")).toHaveValue("4");
+  await expect(page.locator("#sTime")).toHaveValue("8:00 PM");
+  await page.evaluate(async () => (await import("/js/views/admin.js")).renderAdmin());
+  await expect(page.locator("#sName")).toHaveValue("");
+});

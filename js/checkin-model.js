@@ -1,5 +1,6 @@
 import { cleanPlayerName, hasPlayerName } from "./player-search.js";
 import { validateContact } from "./contact.js";
+import { isCheckInOpen } from "./public-games.js";
 import { normalizeGame } from "./game-model.js";
 // Shared with the callable function. No caller may supply points, game state, or totals.
 export function applyCheckIn(
@@ -24,7 +25,7 @@ export function applyCheckIn(
     throw new Error("Administrator sign-in required.");
   if (
     current?.status !== "running" ||
-    (action !== "remove" && !current.registrationOpen && !admin)
+    (action !== "remove" && !isCheckInOpen(current, now) && !admin)
   )
     throw new Error("Check-in is not open.");
   const tonight = game?.tonight ?? next.tonight;

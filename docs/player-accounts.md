@@ -1,3 +1,7 @@
+> Historical documentation: player sign-in and account pages have been retired.
+> Administrators sign in directly at `/admin`; public navigation has no account links.
+> Existing account records and administrator unlink tools remain for legacy data maintenance.
+
 # Player accounts and My Stats
 
 The My Stats page is an additional page in the existing static app. A single

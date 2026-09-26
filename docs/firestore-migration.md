@@ -31,7 +31,12 @@ All new data lives under `leagues/atlanta-v2`:
 - `history/{id}`: one native document per original history entry or finalized game.
 - `legacyAttendance/{id}`: private, complete original attendance records.
 - `settings/current`: active game pointer and schema version.
-- `operations/control`: publication gate, write-maintenance gate, migration checksum.
+- `operations/control`: optional publication gate, write-maintenance gate, migration checksum.
+  A missing record defaults to public reads and validated callable writes, so a fresh
+  database needs no bootstrap setting. When the record exists, `published: true`
+  and `writesEnabled: true` are required to open their respective gates; missing
+  or false fields keep them closed. Client writes and private data remain protected.
+  Keep this record during maintenance; deleting it restores the fresh-database defaults.
 
 Identifiers use URI-encoded immutable legacy keys with a `p_` prefix for players.
 Editing a display name never changes the player ID. History entries without a game
@@ -92,8 +97,10 @@ URL must include `?emulator=1`.
 2. Record the current GitHub Pages commit and save deployed Firestore rules and
    indexes separately. The JSON data backup does not contain Auth, rules, indexes,
    or Storage. The existing site deploys from `main` at repository root.
-3. Deploy `firebase deploy --only functions --project all-in-atlanta-pok`. New
-   callables remain closed until `operations/control.writesEnabled` is true.
+3. Before migration, create `leagues/atlanta-v2/operations/control` with
+   `published: false` and `writesEnabled: false`. Deploy
+   `firebase deploy --only functions --project all-in-atlanta-pok`. The explicit
+   control record keeps callables closed until `writesEnabled` is true.
 4. Schedule cutover between games. Verify the active game is idle with no check-ins.
    Deploy the new `firestore.rules` to stop legacy client reads/writes and protect
    new private documents. This starts a short maintenance window. Also stop any

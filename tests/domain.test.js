@@ -13,6 +13,7 @@ import {
   advanceTimer,
   jumpTimer,
 } from "../js/timer.js";
+import { atlantaDateKey } from "../js/league-date.js";
 import { applyCheckIn } from "../js/checkin-model.js";
 
 const game = {
@@ -164,7 +165,7 @@ test("timer advances at the boundary, handles breaks and repeats its final level
 function checkInState() {
   return {
     players: { alice: structuredClone(player) },
-    gameList: [{ ...game, state: "open", tonight: [] }],
+    gameList: [{ ...game, date: atlantaDateKey(), state: "open", tonight: [] }],
     activeGameId: game.id,
     gameState: "closed",
     tonight: [],

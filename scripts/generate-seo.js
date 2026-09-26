@@ -12,6 +12,7 @@ async function output(path, content) {
 }
 const html = await readFile(new URL("index.html", root), "utf8");
 await output("index.html", renderPage(html, "home"));
+await output("404.html", renderPage(html, "home"));
 for (const page of Object.keys(seoPages).filter((key) => key !== "home")) {
   await output(
     `${page}.html`,

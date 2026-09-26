@@ -72,7 +72,7 @@ test(
         [5001, process.env.FUNCTIONS_EMULATOR_HOST],
       ]) {
         if (!host) continue;
-        await page.context().route(`http://127.0.0.1:${port}/**`, route => {
+        await page.context().route(`http://127.0.0.1:${port}/**`, (route) => {
           const url = new URL(route.request().url());
           url.host = host;
           return route.continue({ url: url.href });
@@ -86,18 +86,22 @@ test(
       await page.goto("http://127.0.0.1:4174/?emulator=1");
       await page.waitForFunction(
         () =>
-          JSON.parse(localStorage.getItem("aia_emulator_v2_players") || "{}").alice
-            ?.total === 10,
+          JSON.parse(localStorage.getItem("aia_emulator_v2_players") || "{}")
+            .alice?.total === 10,
       );
       assert.ok(
         !(
-          await page.evaluate(() => localStorage.getItem("aia_emulator_v2_players"))
+          await page.evaluate(() =>
+            localStorage.getItem("aia_emulator_v2_players"),
+          )
         ).includes("private@example.com"),
       );
-      await page.locator("#nav-account").click();
-      await page.locator("#accountEmail").fill("admin@example.com");
-      await page.locator("#accountPassword").fill("emulator-only-password");
-      await page.locator('#accountAuthForm button[type="submit"]').click();
+      await page.evaluate(async () =>
+        (await import("/js/navigation.js")).go("admin"),
+      );
+      await page.locator("#adminEmail").fill("admin@example.com");
+      await page.locator("#adminPassword").fill("emulator-only-password");
+      await page.locator('#adminLoginForm button[type="submit"]').click();
       await page.evaluate(async () => {
         globalThis.testModules = {
           auth: await import("/js/auth.js"),
@@ -107,24 +111,40 @@ test(
       });
       await page.waitForFunction(() => globalThis.testModules.auth.isAdmin());
       const productionPage = await page.context().newPage();
-      await productionPage.route("https://identitytoolkit.googleapis.com/**", route => route.abort());
-      await productionPage.route("https://securetoken.googleapis.com/**", route => route.abort());
-      await productionPage.route("https://firestore.googleapis.com/**", route => route.abort());
+      await productionPage.route(
+        "https://identitytoolkit.googleapis.com/**",
+        (route) => route.abort(),
+      );
+      await productionPage.route(
+        "https://securetoken.googleapis.com/**",
+        (route) => route.abort(),
+      );
+      await productionPage.route(
+        "https://firestore.googleapis.com/**",
+        (route) => route.abort(),
+      );
       await productionPage.goto("http://127.0.0.1:4174/");
       await productionPage.waitForFunction(async () => {
-        const { getApps } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-        return getApps().some(app => app.name === "[DEFAULT]");
+        const { getApps } =
+          await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+        return getApps().some((app) => app.name === "[DEFAULT]");
       });
-      assert.equal(await productionPage.evaluate(async () => {
-        const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-        const auth = getAuth();
-        await auth.authStateReady();
-        const uid = auth.currentUser?.uid;
-        await signOut(auth);
-        return uid || null;
-      }), null);
+      assert.equal(
+        await productionPage.evaluate(async () => {
+          const { getAuth, signOut } =
+            await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+          const auth = getAuth();
+          await auth.authStateReady();
+          const uid = auth.currentUser?.uid;
+          await signOut(auth);
+          return uid || null;
+        }),
+        null,
+      );
       await page.reload();
-      await page.waitForFunction(async () => (await import("/js/auth.js")).isAdmin());
+      await page.waitForFunction(async () =>
+        (await import("/js/auth.js")).isAdmin(),
+      );
       await page.evaluate(async () => {
         globalThis.testModules = {
           auth: await import("/js/auth.js"),

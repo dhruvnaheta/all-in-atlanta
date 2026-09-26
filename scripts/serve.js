@@ -17,9 +17,13 @@ createServer(async (request, response) => {
     let path = decodeURIComponent(
       new URL(request.url, "http://localhost").pathname,
     ).replace(/^\/$/, "/index.html");
+    if (/^\/account\/?$/.test(path)) {
+      response.writeHead(301, { Location: "/admin/" + new URL(request.url, "http://localhost").search }).end();
+      return;
+    }
     const page = path.split("/").filter(Boolean)[0] || "home";
     if (
-      /^\/(about|rankings|games|rules|restrictions|tv|account|admin)\/?$/.test(
+      /^\/(about|rankings|games|rules|restrictions|tv|admin)\/?$/.test(
         path,
       )
     )

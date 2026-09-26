@@ -75,3 +75,8 @@ export function applyDrafts(root, scope) {
     }
   }
 }
+
+export function clearDraftFields(scope, ids) {
+  const state = drafts.get(scope);
+  if (state) for (const id of ids) delete state.fields[id];
+}

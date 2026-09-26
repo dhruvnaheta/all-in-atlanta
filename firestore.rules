@@ -3,7 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() { return request.auth != null && request.auth.token.admin == true; }
     function published() {
-      return get(/databases/$(database)/documents/leagues/atlanta-v2/operations/control).data.published == true;
+      return !exists(/databases/$(database)/documents/leagues/atlanta-v2/operations/control) ||
+        get(/databases/$(database)/documents/leagues/atlanta-v2/operations/control).data.get('published', false) == true;
     }
     match /leagues/atlanta-v2/{collection}/{id} {
       allow read: if published() && collection in ['players', 'series', 'games', 'history', 'settings'];

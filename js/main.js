@@ -1,13 +1,10 @@
 import { atlantaDateKey } from "./league-date.js";
 import { subscribeAccount } from "./account.js";
 import {
-  renderAccount,
-  setAccountAuthMode,
-  authenticateAccount,
+  setLoginMode,
+  authenticateAdmin,
   authenticateWithGoogle,
-  accountSignOut,
-  accountPasswordReset,
-} from "./views/account.js";
+} from "./views/admin-login.js";
 import { bindDrafts, clearPrivateDrafts, clearGameDrafts } from "./drafts.js";
 import { getActiveGame } from "./state.js";
 import { registerViews, renderPlayerTable } from "./refresh.js";
@@ -104,7 +101,6 @@ registerViews({
 
 export function renderAll() {
   drawGames();
-  renderAccount();
   drawRankings();
   drawStats();
   drawSchedule();
@@ -120,7 +116,6 @@ export function scheduleRefresh(keys) {
     refreshPending = false;
     const changed = new Set(pendingKeys);
     pendingKeys.clear();
-    renderAccount();
     const has = (...keys) => keys.some((key) => changed.has(key));
     if (has("activeGameId")) closeEditPlayer();
     if (
@@ -159,7 +154,6 @@ export function scheduleRefresh(keys) {
 }
 LS.subscribe((event) => scheduleRefresh(event.keys || []));
 subscribeAccount(() => {
-  renderAccount();
   if (
     isAdmin() &&
     document.getElementById("page-admin").classList.contains("active")
@@ -167,15 +161,10 @@ subscribeAccount(() => {
     drawAdmin();
 });
 subscribeAuth(() => {
-  renderAccount();
   if (!isAdmin()) {
     clearPrivateDrafts();
     closeEditPlayer();
   }
-  const label = "Admin";
-  document.getElementById("nav-account").textContent = label;
-  document.getElementById("mobileAccountLabel").textContent = label;
-  document.getElementById("nav-account").classList.toggle("authed", isAdmin());
   if (document.getElementById("page-admin").classList.contains("active"))
     drawAdmin();
 });
@@ -186,19 +175,9 @@ bindDrafts();
 export const actions = {
   adminAddAdministrator,
   toggleMobileMenu,
-  openAccount: () => {
-    go(isAdmin() ? "admin" : "account");
-    renderAccount();
-  },
-  openPlayerAccount: () => {
-    go("account");
-    renderAccount();
-  },
-  accountAuthMode: (element) => setAccountAuthMode(element.dataset.arg0),
-  accountAuthenticate: (element) => authenticateAccount(element),
-  accountGoogleSignIn: (element) => authenticateWithGoogle(element),
-  accountSignOut: () => accountSignOut(),
-  accountPasswordReset: () => accountPasswordReset(),
+  loginMode: (element) => setLoginMode(element.dataset.arg0),
+  loginAuthenticate: (element) => authenticateAdmin(element),
+  loginGoogleSignIn: (element) => authenticateWithGoogle(element),
   go: (element, event) => go(element.dataset.arg0),
   openAdmin: (element, event) => openAdmin(),
   sR: (element, event) => sR(element, element.dataset.arg1),
