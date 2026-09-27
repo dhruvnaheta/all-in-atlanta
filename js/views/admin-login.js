@@ -11,7 +11,7 @@ import { openAdmin } from "./admin.js";
 let authMode = "signin";
 function signedOut() {
   const reset = authMode === "reset";
-  return `<div class="admin-login-welcome"><div><div class="sec-tag">League administration</div><h2>Admin</h2><p>Sign in with your administrator account to manage games and player results.</p><a href="/games/" class="btn btn-ghost" data-click="go" data-arg0="games">View games</a></div>
+  return `<div class="admin-login-welcome"><div class="admin-login-intro"><div class="sec-tag">League administration</div><h2>Admin</h2><p>Sign in with your administrator account to manage games and player results.</p><a href="/games/" class="btn btn-ghost" data-click="go" data-arg0="games">View games</a></div>
     <form id="adminLoginForm" class="card admin-login-form" data-submit="loginAuthenticate">
       <h2>${reset ? "Reset your password" : "Admin sign in"}</h2>
       ${reset ? '<p class="admin-login-muted">Enter your admin email and we’ll send a reset link.</p>' : '<button class="btn btn-ghost admin-login-google" type="button" data-click="loginGoogleSignIn"><img src="/assets/google.svg" width="20" height="20" alt="" aria-hidden="true">Continue with Google</button><div class="admin-login-auth-divider">or use your email</div>'}

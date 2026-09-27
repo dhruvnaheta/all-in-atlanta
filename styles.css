@@ -2253,7 +2253,8 @@ button[data-click="loginGoogleSignIn"][aria-busy="true"]::after {
 .admin-login-welcome > div > h2 { font: 800 clamp(42px, 6vw, 68px)/1.05 "Barlow Condensed", sans-serif; margin: 14px 0 20px; color: var(--felt); }
 .admin-login-welcome > * { min-width: 0; }
 .admin-login-welcome p { line-height: 1.65; max-width: 400px; }
-.admin-login-welcome > div > p { margin-bottom: 24px; }
+.admin-login-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; }
+.admin-login-intro > .sec-tag, .admin-login-welcome > .admin-login-intro > h2, .admin-login-intro > p { margin: 0; }
 .admin-login-welcome > div > .btn { display: inline-flex; align-items: center; }
 .admin-login-form { padding: 28px; }
 .admin-login-form h2 { font: 700 27px/1.2 "Barlow Condensed", sans-serif; margin-bottom: 12px; }
