@@ -7,7 +7,7 @@ import {
 } from "../../timer-controller.js";
 import { levelDur, BLIND_LEVELS, levelDurMins } from "../../blinds.js";
 import { esc, playerFieldId } from "../../dom.js";
-import { previewNextStreak } from "../../scoring.js";
+import { previewNextStreak, ptFor } from "../../scoring.js";
 export function gameButtons(state, game) {
   const registrationOpen = game?.registrationOpen;
   const canCheckIn = isCheckInOpen(game);
@@ -204,14 +204,14 @@ export function finishSection(state, tonight, players, activeGame) {
           <div class="finish-player"><label for="fsel_${sn}">${esc(rec.dn || p.key)}</label><span class="finish-streak">Streak ${streakBadge}</span></div>
           <select aria-label="Finish position for ${esc(rec.dn || p.key)}" class="fsel" id="fsel_${sn}" data-player-key="${esc(p.key)}" data-change="syncFpos" data-arg0="${esc(sn)}">
             <option value="">— Not placed —</option>
-            <option value="1">1st — 25 pts</option>
-            <option value="2">2nd — 18 pts</option>
-            <option value="3">3rd — 15 pts</option>
-            <option value="4">4th — 12 pts</option>
-            <option value="5">5th — 10 pts</option>
-            <option value="6">6th — 8 pts</option>
-            <option value="7">7th — 6 pts</option>
-            <option value="8">8th — 4 pts</option>
+            <option value="1">1st — ${ptFor(1)} pts</option>
+            <option value="2">2nd — ${ptFor(2)} pts</option>
+            <option value="3">3rd — ${ptFor(3)} pts</option>
+            <option value="4">4th — ${ptFor(4)} pts</option>
+            <option value="5">5th — ${ptFor(5)} pts</option>
+            <option value="6">6th — ${ptFor(6)} pts</option>
+            <option value="7">7th — ${ptFor(7)} pts</option>
+            <option value="8">8th — ${ptFor(8)} pts</option>
             <option value="p">Participation — 1 pt</option>
           </select>
           <div class="fpts" id="fptsv_${sn}">— pts</div>

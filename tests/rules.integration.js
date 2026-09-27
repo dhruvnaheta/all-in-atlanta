@@ -230,7 +230,7 @@ test("concurrent check-ins and result submissions retain attendance and award po
   );
   assert.equal(
     calculateStats({ alice: profile }, history).players.alice.total,
-    25,
+    10,
   );
   assert.equal(
     (await db.doc(`${root}/games/g`).get()).data().status,
@@ -361,8 +361,8 @@ test("admin edits cannot override stats; finalization rebuilds from earlier resu
     history,
     new Date("2026-09-26T12:00:00Z"),
   );
-  assert.equal(stats.players.alice.total, 43);
-  assert.equal(stats.players.alice.month, 25);
+  assert.equal(stats.players.alice.total, 28);
+  assert.equal(stats.players.alice.month, 10);
   assert.equal(
     (await db.doc(`${root}/history/game_g`).get()).data().gameId,
     "g",
@@ -382,13 +382,13 @@ test("historical corrections replace points without changing attendance or the a
   const request = { historyId: "game_g", before, positions: { alice: "1" } };
   await amendResults(db, request);
   const corrected = (await ref.get()).data();
-  assert.equal(corrected.results[0].pts, 25);
+  assert.equal(corrected.results[0].pts, 10);
   assert.equal(corrected.stopped, false);
   assert.equal(corrected.completedAt, before.completedAt);
   assert.deepEqual(corrected.attendanceKeys, before.attendanceKeys);
   const stats = calculateStats({ alice: { key: "alice" } }, [corrected]).players
     .alice;
-  assert.equal(stats.total, 25);
+  assert.equal(stats.total, 10);
   assert.equal(stats.games, 1);
   assert.equal((await db.collection(`${root}/history`).get()).size, 1);
   assert.equal(
@@ -398,7 +398,7 @@ test("historical corrections replace points without changing attendance or the a
   assert.equal(
     (await db.doc(`${root}/games/g/participants/p_alice`).get()).data().results
       .game_g.pts,
-    25,
+    10,
   );
   await assert.rejects(amendResults(db, request), /changed elsewhere/);
   await amendResults(db, {
@@ -406,7 +406,7 @@ test("historical corrections replace points without changing attendance or the a
     before: corrected,
     positions: { alice: "2" },
   });
-  assert.equal((await ref.get()).data().results[0].pts, 18);
+  assert.equal((await ref.get()).data().results[0].pts, 7);
 });
 
 test("historical corrections validate placements and honor maintenance lock", async () => {
@@ -541,7 +541,7 @@ test("historical metadata corrections update game and ledger together and recalc
     new Date("2026-09-26T12:00:00Z"),
   ).players.alice;
   assert.equal(stats.month, 0);
-  assert.equal(stats.total, 25);
+  assert.equal(stats.total, 10);
   assert.equal(stats.games, 1);
   await assert.rejects(amendResults(db, request), /changed elsewhere/);
 });

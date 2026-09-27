@@ -179,8 +179,8 @@ test("empty stopped games count; scoring replays previous results rather than pr
     positions: { a: 1 },
     now,
   });
-  assert.equal(result.players.a.total, 43);
-  assert.equal(result.players.a.month, 25);
+  assert.equal(result.players.a.total, 28);
+  assert.equal(result.players.a.month, 10);
   const empty = scoreGame({
     players: profiles,
     history,

@@ -46,7 +46,7 @@ const scoringInput = () => ({
 test("scoring derives totals from results, awards participation, and leaves its input untouched", () => {
   const input = scoringInput();
   const result = scoreGame(input);
-  assert.equal(result.players.alice.total, 25);
+  assert.equal(result.players.alice.total, 10);
   assert.equal(result.players.alice.games, 1);
   assert.equal(result.players.bob.total, 1);
   assert.equal(result.players.bob.games, 1);
@@ -54,7 +54,17 @@ test("scoring derives totals from results, awards participation, and leaves its 
   assert.equal(result.history[0].gameId, "g_1");
   assert.equal(input.players.alice.total, 10);
   assert.deepEqual(input.history, []);
-  assert.equal(result.players.alice.bySeries.s_1.total, 25);
+  assert.equal(result.players.alice.bySeries.s_1.total, 10);
+});
+test("new podium results award 10, 7, and 5 points", () => {
+  for (const [position, points] of [[1, 10], [2, 7], [3, 5]]) {
+    const result = scoreGame({
+      ...scoringInput(),
+      positions: { alice: position },
+    });
+    assert.equal(result.history[0].results[0].pts, points);
+    assert.equal(result.players.alice.total, points);
+  }
 });
 test("a repeated game is rejected, including the stop-game path", () => {
   const input = scoringInput();
@@ -69,7 +79,7 @@ test("an obsolete profile ledger cannot suppress a new result", () => {
   const input = scoringInput();
   input.players.alice.gameDates = [{ gameId: game.id }];
   const result = scoreGame(input);
-  assert.equal(result.players.alice.total, 25);
+  assert.equal(result.players.alice.total, 10);
   assert.equal(result.players.alice.games, 1);
   assert.equal(result.alreadyAppliedCount, 0);
   assert.equal(result.history[0].attendanceCount, 2);

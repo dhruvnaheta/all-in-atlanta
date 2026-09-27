@@ -197,7 +197,7 @@ test(
         undefined,
       );
       await page.waitForFunction(
-        () => globalThis.testModules.state.getPlayers().alice.total === 25,
+        () => globalThis.testModules.state.getPlayers().alice.total === 10,
       );
       assert.equal(await page.locator("#s-games").textContent(), "1");
       await page.evaluate(async () => (await import("/js/auth.js")).signOut());

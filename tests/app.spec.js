@@ -141,7 +141,7 @@ test("stop game asks for finishing order while check-in is open and awards finis
   const player = await page.evaluate(
     async () => (await import("/js/state.js")).getPlayers().alice,
   );
-  expect(player.total).toBe(50);
+  expect(player.total).toBe(35);
 });
 
 test("ending without results requires confirmation and cancel preserves selected positions", async ({
@@ -534,7 +534,7 @@ test("admins can correct past results and keep their draft through live updates"
   await page.getByRole("button", { name: "Edit results", exact: true }).click();
   const editor = page.locator("#historyResultsEditor");
   await editor.locator("select").selectOption("1");
-  await expect(editor.getByLabel("Points for Alice", { exact: true })).toHaveValue("25");
+  await expect(editor.getByLabel("Points for Alice", { exact: true })).toHaveValue("10");
   const pointsInput = editor.getByLabel("Points for Alice", { exact: true });
   await expect(pointsInput).toHaveAttribute("max", "100");
   for (const value of ["101", "2500", "1000000000000000"]) {
