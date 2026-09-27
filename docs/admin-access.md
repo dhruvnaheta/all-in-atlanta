@@ -29,7 +29,7 @@ other claims. Disabled accounts cannot be granted access through the form.
 
 Google sign-in uses a popup and the configured Firebase auth domain,
 `all-in-atlanta-pok.firebaseapp.com`, on local and hosted deployments. Production
-is served by GitHub Pages, which cannot run the auth proxy in `vercel.json`.
+is served by GitHub Pages; authentication helpers are hosted by Firebase.
 Do not select the current hostname as `authDomain` just because it uses HTTPS:
 that makes Firebase request a missing `/__/auth/iframe` and sign-in can hang.
 

@@ -8,7 +8,7 @@ import {
 
 test("production and preview use Firebase helpers without requiring a host proxy", () => {
   const config = { authDomain: "project.firebaseapp.com" };
-  for (const hostname of ["allinatlanta.com", "preview.vercel.app"]) {
+  for (const hostname of ["allinatlanta.com", "example.github.io"]) {
     const location = { protocol: "https:", hostname };
     assert.equal(googleAuthDomain(config, location), config.authDomain);
   }
