@@ -26,7 +26,7 @@ import {
   initializeNavigation,
   toggleMobileMenu,
 } from "./navigation.js";
-import { setRankSeriesFilter } from "./views/rankings.js";
+import { setRankPeriod, setRankSeriesFilter } from "./views/rankings.js";
 import {
   pubSearch,
   pubKeydown,
@@ -187,6 +187,7 @@ export const actions = {
   go: (element, event) => go(element.dataset.arg0),
   openAdmin: (element, event) => openAdmin(),
   sR: (element, event) => sR(element, element.dataset.arg1),
+  setRankPeriod: (element) => setRankPeriod(element.dataset.arg0),
   setRankSeriesFilter: (element, event) =>
     setRankSeriesFilter(element.dataset.arg0),
   pubSearch: (element, event) => pubSearch(element.value),

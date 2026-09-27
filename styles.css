@@ -374,11 +374,13 @@ nav {
 #page-rankings h2 {
   margin-bottom: 8px;
 }
-#page-rankings .section > p {
+#page-rankings .section > p,
+#page-rankings .rankings-panel > p {
   line-height: 1.6;
   margin-bottom: 12px;
 }
-#page-rankings .section > p:last-of-type {
+#page-rankings .section > p:last-of-type,
+#page-rankings .rankings-panel > p:last-of-type {
   margin-bottom: 20px;
 }
 

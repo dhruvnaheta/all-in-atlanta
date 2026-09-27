@@ -14,6 +14,17 @@ export function rankTable(rows, empty, showStreak = true) {
 }
 let _rankSeriesFilter = "combined"; // 'combined' | seriesId
 
+export function setRankPeriod(period) {
+  if (period !== "month" && period !== "total") return;
+  document.getElementById("monthly-standings").hidden = period !== "month";
+  document.getElementById("alltime-standings").hidden = period !== "total";
+  document.querySelectorAll('[data-click="setRankPeriod"]').forEach((button) => {
+    const selected = button.dataset.arg0 === period;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
+
 export function getRows(field) {
   return standings(
     getPlayers(),

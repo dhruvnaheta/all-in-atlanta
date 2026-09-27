@@ -45,6 +45,29 @@ test("navigation, logo, rules and rankings work without globals or inline handle
   }
   await page.locator("#nav-rankings").click();
   await expect(page.locator("#monthly-rankings")).toContainText("Alice");
+  await expect(page.locator("#monthly-standings > p")).toHaveCSS(
+    "margin-bottom",
+    "20px",
+  );
+  await expect(page.locator("#monthly-rankings")).toBeVisible();
+  await expect(page.locator("#alltime-rankings")).toBeHidden();
+  const monthly = page.getByRole("button", { name: "Monthly", exact: true });
+  const allTime = page.getByRole("button", { name: "All time", exact: true });
+  await allTime.click();
+  await expect(allTime).toHaveAttribute("aria-pressed", "true");
+  await expect(monthly).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#monthly-rankings")).toBeHidden();
+  await expect(page.locator("#alltime-rankings")).toBeVisible();
+  await expect(page.locator("#alltime-rankings")).toContainText("Alice");
+  await expect(page.locator("#alltime-standings > p")).toHaveCSS(
+    "margin-bottom",
+    "20px",
+  );
+  await monthly.click();
+  await expect(monthly).toHaveAttribute("aria-pressed", "true");
+  await expect(allTime).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#monthly-rankings")).toBeVisible();
+  await expect(page.locator("#alltime-rankings")).toBeHidden();
   expect(await page.evaluate(() => typeof window.go)).toBe("undefined");
   expect(
     await page

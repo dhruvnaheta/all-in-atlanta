@@ -713,33 +713,55 @@
       </div>
       <div class="container">
         <div class="section">
+          <div class="tab-bar" role="group" aria-label="Ranking period">
+            <button
+              type="button"
+              class="tab-btn active"
+              data-click="setRankPeriod"
+              data-arg0="month"
+              aria-pressed="true"
+              aria-controls="monthly-standings"
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              data-click="setRankPeriod"
+              data-arg0="total"
+              aria-pressed="false"
+              aria-controls="alltime-standings"
+            >
+              All time
+            </button>
+          </div>
           <div id="seriesFilterWrap"></div>
-          <h2>Monthly standings</h2>
-          <p>
-            Points from the current calendar month in Atlanta. A new leaderboard
-            starts each month; past results are preserved.
-          </p>
           <p>
             Ties are broken by the number of 1st-place finishes, then 2nd, and
             so on within the selected period and series. Players still tied
             share a rank; the next rank skips those places (1, 1, 3).
           </p>
-          <div
-            id="monthly-rankings"
-            class="card"
-            style="padding: 0; overflow: hidden"
-          ></div>
-          <h2 style="margin-top: 28px">All-time standings</h2>
-          <div
-            style="font-size: 13px; color: var(--muted); margin-bottom: 14px"
-          >
-            Cumulative points across all games ever played.
+          <div id="monthly-standings" class="rankings-panel">
+            <h2>Monthly standings</h2>
+            <p>
+              Points from the current calendar month in Atlanta. A new leaderboard
+              starts each month; past results are preserved.
+            </p>
+            <div
+              id="monthly-rankings"
+              class="card"
+              style="padding: 0; overflow: hidden"
+            ></div>
           </div>
-          <div
-            class="card"
-            style="padding: 0; overflow: hidden"
-            id="alltime-rankings"
-          ></div>
+          <div id="alltime-standings" class="rankings-panel" hidden>
+            <h2>All-time standings</h2>
+            <p>Cumulative points across all games ever played.</p>
+            <div
+              class="card"
+              style="padding: 0; overflow: hidden"
+              id="alltime-rankings"
+            ></div>
+          </div>
         </div>
       </div>
     </div>
