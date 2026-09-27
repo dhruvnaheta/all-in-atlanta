@@ -1468,6 +1468,21 @@ nav {
   margin-bottom: 7px;
   background: var(--bg2);
 }
+#historyResultsEditor > p {
+  margin: 16px 0;
+  line-height: 1.6;
+  max-width: 80ch;
+}
+#historyResultsEditor > p + p { margin-top: 0; margin-bottom: 24px; }
+#historyResultsEditor .finish-row { padding: 12px; gap: 16px; margin-bottom: 12px; }
+#historyResultsEditor .finish-row > span { min-width: 0; overflow-wrap: anywhere; }
+#historyResultsEditor .fsel { min-width: 0; min-height: 44px; }
+#historyResultsEditor > .btn { margin-top: 12px; }
+@media (max-width: 600px) {
+  #historyResultsEditor .finish-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 12px; }
+  #historyResultsEditor .finish-row > span { grid-column: 1 / -1; }
+  #historyResultsEditor .fsel { width: 100%; font-size: 16px; }
+}
 .fpos {
   font-family: "Barlow Condensed", sans-serif;
   font-weight: 800;
