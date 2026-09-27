@@ -1,44 +1,43 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  usesGoogleRedirect,
   googleAuthDomain,
   googleSignIn,
   acceptGoogleAdministrator,
 } from "../js/google-auth.js";
 
-test("production and preview redirects keep auth state on the current origin", () => {
+test("production and preview use Firebase helpers without requiring a host proxy", () => {
   const config = { authDomain: "project.firebaseapp.com" };
   for (const hostname of ["allinatlanta.com", "preview.vercel.app"]) {
     const location = { protocol: "https:", hostname };
-    assert.equal(usesGoogleRedirect(location), true);
-    assert.equal(googleAuthDomain(config, location), hostname);
+    assert.equal(googleAuthDomain(config, location), config.authDomain);
   }
   const local = { protocol: "http:", hostname: "localhost" };
-  assert.equal(usesGoogleRedirect(local), false);
   assert.equal(googleAuthDomain(config, local), config.authDomain);
 });
 
-test("hosted Google sign-in navigates without opening a popup", async () => {
-  let redirects = 0;
+test("Google sign-in returns the popup credential for administrator validation", async () => {
+  let popups = 0;
   const auth = {};
+  const credential = { user: {} };
   const sdk = {
     GoogleAuthProvider: class {
       setCustomParameters(value) {
         this.parameters = value;
       }
     },
-    signInWithRedirect: async (actualAuth, provider) => {
+    signInWithPopup: async (actualAuth, provider) => {
       assert.equal(actualAuth, auth);
       assert.equal(provider.parameters.prompt, "select_account");
-      redirects++;
+      popups++;
+      return credential;
     },
-    signInWithPopup: () => {
-      assert.fail("Hosted sign-in must not open a popup");
+    signInWithRedirect: () => {
+      assert.fail("Static hosting must not depend on redirect helpers");
     },
   };
-  await googleSignIn(sdk, auth, true);
-  assert.equal(redirects, 1);
+  assert.equal(await googleSignIn(sdk, auth), credential);
+  assert.equal(popups, 1);
 });
 
 test("redirect return refreshes admin claims and rejects non-admins", async () => {

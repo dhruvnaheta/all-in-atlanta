@@ -13,7 +13,6 @@ import { documentPatches } from "./schema.js";
 import { configureAuth, setSession, isAdmin, subscribeAuth } from "./auth.js";
 import {
   googleAuthDomain,
-  usesGoogleRedirect,
   googleSignIn,
   acceptGoogleAdministrator,
 } from "./google-auth.js";
@@ -84,7 +83,7 @@ export async function initializeFirebase(onError, onAuthError = onError) {
   const stopAuthSync = subscribeAuth(({ admin }) => sync.setAdmin(admin));
   configureAuth({
     async signInWithGoogle() {
-      const result = await googleSignIn(authSDK, auth, usesGoogleRedirect());
+      const result = await googleSignIn(authSDK, auth);
       await acceptGoogleAdministrator(authSDK, auth, result, setSession);
     },
     async signIn(email, password) {

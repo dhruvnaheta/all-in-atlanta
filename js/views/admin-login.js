@@ -87,7 +87,7 @@ export async function authenticateWithGoogle(button) {
   controls.forEach((control) => {
     control.disabled = true;
   });
-  message.textContent = "Connecting to Google…";
+  message.textContent = "Complete sign-in in the Google window.";
   try {
     await signInWithGoogle();
     if (isAdmin()) openAdmin();

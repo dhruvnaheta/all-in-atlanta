@@ -1,18 +1,13 @@
-// Vercel proxies /__/auth/* to Firebase so redirect state stays first-party.
-export function usesGoogleRedirect(location = globalThis.location) {
-  return location?.protocol === "https:";
+// GitHub Pages cannot proxy /__/auth/*. Use Firebase's hosted helpers on every
+// deployment; HTTPS alone does not mean the host supports an auth proxy.
+export function googleAuthDomain(config) {
+  return config.authDomain;
 }
 
-export function googleAuthDomain(config, location = globalThis.location) {
-  return usesGoogleRedirect(location) ? location.hostname : config.authDomain;
-}
-
-export function googleSignIn(authSDK, auth, redirect) {
+export function googleSignIn(authSDK, auth) {
   const provider = new authSDK.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  return redirect
-    ? authSDK.signInWithRedirect(auth, provider)
-    : authSDK.signInWithPopup(auth, provider);
+  return authSDK.signInWithPopup(auth, provider);
 }
 
 export async function acceptGoogleAdministrator(

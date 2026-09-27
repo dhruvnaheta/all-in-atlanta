@@ -25,31 +25,21 @@ Adding an administrator sends no invitation. Recipients can use Google sign-in o
 Forgot password on the Admin page. Existing accounts retain their passwords and
 other claims. Disabled accounts cannot be granted access through the form.
 
-## Google sign-in on Vercel
+## Google sign-in
 
-HTTPS deployments use same-tab Google sign-in. `vercel.json` proxies Firebase's
-auth helpers through the current domain so browsers can preserve redirect state
-without third-party storage access. Local HTTP development keeps the popup flow.
-Deploy the frontend and `vercel.json` together.
+Google sign-in uses a popup and the configured Firebase auth domain,
+`all-in-atlanta-pok.firebaseapp.com`, on local and hosted deployments. Production
+is served by GitHub Pages, which cannot run the auth proxy in `vercel.json`.
+Do not select the current hostname as `authDomain` just because it uses HTTPS:
+that makes Firebase request a missing `/__/auth/iframe` and sign-in can hang.
 
-Before using Google sign-in on a deployment, configure its exact hostname:
+In Firebase Authentication → Settings → Authorized domains, include
+`allinatlanta.com` and any other hostname used for sign-in. Retain the Firebase
+OAuth redirect URI, `https://all-in-atlanta-pok.firebaseapp.com/__/auth/handler`,
+in the Google provider's OAuth web client. A custom-domain OAuth redirect URI
+is not needed for this popup flow.
 
-1. In Firebase Authentication → Settings → Authorized domains, add
-   `allinatlanta.com` (and each Vercel hostname used for sign-in).
-2. In Google Cloud → APIs & Services → Credentials, edit the OAuth web client
-   used by Firebase's Google provider. Add
-   `https://allinatlanta.com/__/auth/handler` to Authorized redirect URIs.
-   For a Vercel hostname, add `https://HOSTNAME/__/auth/handler` as well.
-3. If `www.allinatlanta.com` serves the app instead of redirecting to the apex,
-   register it in both places too. Prefer a stable Vercel staging hostname to
-   registering every preview deployment.
+Allow popups when prompted. Verify an administrator can sign in, a non-admin
+is rejected, and closing or blocking the popup leaves the form usable.
 
-These console settings are required; deploying code does not register OAuth
-domains. Retain the existing Firebase redirect URI for local popup sign-in.
-On the deployed site, verify `/__/auth/iframe` serves Firebase's helper and
-`/__/firebase/init.json` serves Firebase configuration, then complete Google
-sign-in with an administrator account. Also check a non-admin is rejected and
-canceling Google sign-in leaves the admin form usable.
-
-See [Firebase redirect setup](https://firebase.google.com/docs/auth/web/redirect-best-practices)
-and [Vercel rewrites](https://vercel.com/docs/routing/rewrites).
+See [Firebase popup guidance](https://firebase.google.com/docs/auth/web/redirect-best-practices#option-2).
