@@ -17,13 +17,13 @@ import { levelDur } from "/js/blinds.js";
 export async function initializeFirebase() {
   LS.applySnapshot({
     ...DEFAULT_STATE,
-    history:[{gameId:'previous',date:atlantaDateKey(),seriesId:'s_wickedwolf',results:[{key:'alice',pos:1,pts:25}]}],
+    history:[{gameId:'previous',date:atlantaDateKey(),seriesId:'s_wickedwolf',results:[{key:'alice',pos:1,pts:10}]}],
     players: {
       alice: {
         key: "alice",
         dn: "Alice",
-        total: 25,
-        month: 25,
+        total: 10,
+        month: 10,
         games: 1,
         gameDates: [],
         email: "alice@example.test",

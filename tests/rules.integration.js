@@ -432,6 +432,8 @@ test("historical corrections validate placements and honor maintenance lock", as
   for (const positions of [
     { alice: "1", bob: "1" },
     { alice: "9", bob: "p" },
+    { alice: "4", bob: "p" },
+    { alice: "8", bob: "p" },
     { alice: "1" },
     { alice: "1", bob: "p", extra: "2" },
   ])
@@ -463,6 +465,90 @@ test("historical corrections validate placements and honor maintenance lock", as
     amendResults(db, { ...request, positions: { alice: "1", bob: "p" } }),
     /maintenance/,
   );
+});
+
+test("historical corrections can add players who never checked in", async () => {
+  await checkIn(
+    db,
+    { action: "checkIn", gameId: "g", key: "alice" },
+    new Date("2026-09-24T20:00:00Z"),
+  );
+  await db.doc(`${root}/players/p_bob`).set({ key: "bob", dn: "Bob" });
+  await finalizeGame(db, { gameId: "g", stopped: true });
+  const ref = db.doc(`${root}/history/game_g`);
+  const before = (await ref.get()).data();
+  const request = { historyId: "game_g", before };
+  for (const invalid of [
+    { positions: { alice: "1", carol: "2" } },
+    { positions: { alice: "1", bob: "1" } },
+    { positions: { bob: "1" } },
+    { positions: { alice: "1", bob: "p" }, newPlayers: { dave: { dn: "Dave" } } },
+    { positions: { alice: "1", alice2: "p" }, newPlayers: { alice2: { dn: "Alice" } } },
+    { positions: { alice: "1", bob: "p" }, points: { alice: 10 } },
+  ])
+    await assert.rejects(amendResults(db, { ...request, ...invalid }));
+  assert.deepEqual((await ref.get()).data(), before);
+  assert.equal((await db.doc(`${root}/players/p_carol`).get()).exists, false);
+  await amendResults(db, {
+    ...request,
+    positions: { alice: "2", bob: "1", carol: "p" },
+    points: { alice: 7, bob: 10, carol: 1 },
+    newPlayers: { carol: { dn: "Carol", email: "carol@example.test" } },
+  });
+  const corrected = (await ref.get()).data();
+  assert.deepEqual(
+    corrected.results.map((r) => [r.key, r.name, r.pos, r.pts]),
+    [
+      ["alice", "Alice", 2, 7],
+      ["bob", "Bob", 1, 10],
+      ["carol", "Carol", "p", 1],
+    ],
+  );
+  assert.equal(corrected.attendanceCount, 3);
+  assert.deepEqual(corrected.attendanceKeys, ["alice", "bob", "carol"]);
+  assert.equal(corrected.stopped, false);
+  assert.equal(corrected.completedAt, before.completedAt);
+  assert.equal((await db.doc(`${root}/players/p_carol`).get()).data().dn, "Carol");
+  assert.equal(
+    (await db.doc(`${root}/players/p_carol`).get()).data().email,
+    undefined,
+  );
+  assert.equal(
+    (await db.doc(`${root}/playerContacts/p_carol`).get()).data().email,
+    "carol@example.test",
+  );
+  assert.equal(
+    (await db.doc(`${root}/games/g/participants/p_bob`).get()).data().results
+      .game_g.pts,
+    10,
+  );
+  const stats = calculateStats(
+    { alice: { key: "alice" }, bob: { key: "bob" }, carol: { key: "carol" } },
+    [corrected],
+  ).players;
+  assert.equal(stats.bob.total, 10);
+  assert.equal(stats.carol.games, 1);
+});
+
+test("historical corrections can add players to a stopped game with no attendance", async () => {
+  await finalizeGame(db, { gameId: "g", stopped: true });
+  const ref = db.doc(`${root}/history/game_g`);
+  const before = (await ref.get()).data();
+  assert.equal(before.results.length, 0);
+  await assert.rejects(
+    amendResults(db, { historyId: "game_g", before, positions: {} }),
+    /at least one player/,
+  );
+  await db.doc(`${root}/players/p_bob`).set({ key: "bob", dn: "Bob" });
+  await amendResults(db, {
+    historyId: "game_g",
+    before,
+    positions: { bob: "p" },
+  });
+  const corrected = (await ref.get()).data();
+  assert.deepEqual(corrected.attendanceKeys, ["bob"]);
+  assert.equal(corrected.results[0].pts, 1);
+  assert.equal(corrected.stopped, true);
 });
 
 test("first series saves without settings; active-game preconditions cannot be skipped", async () => {

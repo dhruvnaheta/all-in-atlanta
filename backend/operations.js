@@ -9,8 +9,8 @@ import {
   equal,
   splitPlayer,
 } from "../js/schema.js";
-import { applyCheckIn } from "../js/checkin-model.js";
-import { ptFor, MAX_EDITED_POINTS } from "../js/scoring-rules.js";
+import { applyCheckIn, newPlayerProfile } from "../js/checkin-model.js";
+import { ptFor, PLACES, MAX_EDITED_POINTS } from "../js/scoring-rules.js";
 import { scoreGame } from "../js/scoring.js";
 import { DEFAULT_STATE } from "../js/sync.js";
 
@@ -333,28 +333,72 @@ export async function amendResults(db, request, now = new Date()) {
       throw new Error(
         "These results changed elsewhere. Close and reopen the editor before saving.",
       );
-    if (!record.results?.length)
-      throw new Error("This game has no recorded participants.");
-    const keys = record.results.map((r) => r.key);
+    // Players who never checked in can be added; recorded players stay.
+    const recorded = record.results || [];
+    const keys = recorded.map((r) => r.key);
+    const added = Object.keys(positions).filter((key) => !keys.includes(key));
     if (
       new Set(keys).size !== keys.length ||
-      !equal(Object.keys(positions).sort(), [...keys].sort())
+      keys.some((key) => !Object.hasOwn(positions, key))
     )
-      throw new Error("Positions must match the recorded participants.");
+      throw new Error("Positions must include every recorded participant.");
+    for (const key of added)
+      if (
+        !key.trim() ||
+        key.length > 120 ||
+        ["__proto__", "constructor", "prototype"].includes(key)
+      )
+        throw new Error("Invalid player.");
+    const allKeys = [...keys, ...added];
+    if (!allKeys.length) throw new Error("Add at least one player.");
     const used = new Set();
     const points = request.points;
     if (
       points !== undefined &&
       (!points || typeof points !== "object" || Array.isArray(points) ||
-        !equal(Object.keys(points).sort(), [...keys].sort()) ||
+        !equal(Object.keys(points).sort(), [...allKeys].sort()) ||
         Object.values(points).some((value) => !Number.isSafeInteger(value) || value < 0 || value > MAX_EDITED_POINTS))
     )
-      throw new Error(`Points must be whole numbers between 0 and ${MAX_EDITED_POINTS} for every recorded participant.`);
-    const results = record.results.map((r) => {
+      throw new Error(`Points must be whole numbers between 0 and ${MAX_EDITED_POINTS} for every player.`);
+    const newPlayers = request.newPlayers ?? {};
+    if (
+      !newPlayers ||
+      typeof newPlayers !== "object" ||
+      Array.isArray(newPlayers) ||
+      Object.keys(newPlayers).some((key) => !added.includes(key))
+    )
+      throw new Error("New players must be added to the results.");
+    const profileRefs = added.map((key) =>
+      db.doc(`${LEAGUE_PATH}/players/${playerId(key)}`),
+    );
+    const profiles = profileRefs.length ? await tx.getAll(...profileRefs) : [];
+    const creating = added.filter((key, i) => !profiles[i].exists);
+    const names = Object.fromEntries(
+      added.map((key, i) => [key, profiles[i].data()?.dn || key]),
+    );
+    const created = {};
+    if (creating.length) {
+      const existing = Object.fromEntries(
+        (await tx.get(db.collection(`${LEAGUE_PATH}/players`))).docs.map(
+          (doc) => [doc.data().key, doc.data()],
+        ),
+      );
+      for (const key of creating) {
+        if (!Object.hasOwn(newPlayers, key))
+          throw new Error(`Player "${key}" was not found.`);
+        created[key] = newPlayerProfile(existing, key, newPlayers[key], now);
+        existing[key] = created[key];
+        names[key] = created[key].dn;
+      }
+    }
+    const results = [
+      ...recorded,
+      ...added.map((key) => ({ key, name: names[key], checkInTime: null })),
+    ].map((r) => {
       const value = positions[r.key];
-      if (value !== "p" && !/^[1-8]$/.test(String(value)))
+      if (value !== "p" && !PLACES.map(String).includes(String(value)))
         throw new Error(
-          "Finishing positions must be between 1 and 8 or participation.",
+          "Finishing positions must be 1st, 2nd, 3rd or participation.",
         );
       const pos = value === "p" ? "p" : Number(value);
       if (pos !== "p" && used.has(pos))
@@ -373,9 +417,28 @@ export async function amendResults(db, request, now = new Date()) {
     if (metadata.gameName !== undefined) gameMetadata.name = metadata.gameName;
     if (metadata.date !== undefined) gameMetadata.date = metadata.date;
     if (Object.keys(gameMetadata).length) tx.update(gameRef, gameMetadata);
+    for (const [key, player] of Object.entries(created)) {
+      const { profile, contact } = splitPlayer(player);
+      tx.create(
+        db.doc(`${LEAGUE_PATH}/players/${playerId(key)}`),
+        profileOnly(profile),
+      );
+      tx.create(
+        db.doc(`${LEAGUE_PATH}/playerContacts/${playerId(key)}`),
+        contact,
+      );
+    }
     tx.update(ref, {
       ...metadata,
       results,
+      ...(added.length
+        ? {
+            attendanceCount: results.length,
+            attendanceKeys: [
+              ...new Set([...(record.attendanceKeys || []), ...added]),
+            ],
+          }
+        : {}),
       stopped: !results.some((r) => r.pos !== "p"),
       revisedAt: now.toISOString(),
       revision: (record.revision || 0) + 1,

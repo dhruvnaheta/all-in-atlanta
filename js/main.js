@@ -39,6 +39,7 @@ import {
 import {
   adminLaunchGame,
   adminDeleteSeries,
+  adminRenameSeries,
   adminActivateGame,
   adminDeleteGame,
   adminAddSeries,
@@ -67,6 +68,11 @@ import {
   adminEditResults,
   adminSaveResults,
   adminCancelResults,
+  adminResultsSearch,
+  adminResultsSearchKeydown,
+  adminResultsAddPlayer,
+  adminResultsCreatePlayer,
+  adminResultsRemovePlayer,
   adminSetState,
   adminStopGame,
   adminStopWithoutResults,
@@ -201,6 +207,7 @@ export const actions = {
   adminLaunchGame: (element, event) => adminLaunchGame(element.dataset.arg0),
   adminDeleteSeries: (element, event) =>
     adminDeleteSeries(element.dataset.arg0),
+  adminRenameSeries: (element) => adminRenameSeries(element.dataset.arg0),
   adminActivateGame: (element, event) =>
     adminActivateGame(element.dataset.arg0),
   adminDeleteGame: (element, event) => adminDeleteGame(element.dataset.arg0),
@@ -235,6 +242,15 @@ export const actions = {
   adminEditResults: (element) => adminEditResults(element.dataset.arg0),
   adminSaveResults: () => adminSaveResults(),
   adminCancelResults: () => adminCancelResults(),
+  adminResultsSearch: (element) => adminResultsSearch(element.value),
+  adminResultsSearchKeydown: (element, event) =>
+    adminResultsSearchKeydown(event),
+  adminResultsAddPlayer: (element) =>
+    adminResultsAddPlayer(element.dataset.arg0),
+  adminResultsCreatePlayer: (element) =>
+    adminResultsCreatePlayer(element.dataset.arg0),
+  adminResultsRemovePlayer: (element) =>
+    adminResultsRemovePlayer(Number(element.dataset.arg0)),
   toggleGameHist: (element, event) =>
     toggleGameHist(element.dataset.arg0, element),
   openEditPlayer: (element, event) => openEditPlayer(element.dataset.arg0),

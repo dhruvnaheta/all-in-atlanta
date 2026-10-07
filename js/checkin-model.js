@@ -34,38 +34,8 @@ export function applyCheckIn(
   } else {
     if (tonight.some((p) => p.key === key))
       throw new Error("Already checked in tonight.");
-    if (!Object.hasOwn(next.players, key)) {
-      const dn =
-        typeof profile?.dn === "string" ? cleanPlayerName(profile.dn) : null;
-      if (
-        typeof dn !== "string" ||
-        dn.length < 2 ||
-        dn.length > 120 ||
-        dn.toLowerCase() !== key
-      )
-        throw new Error("Please enter a valid player name.");
-      if (hasPlayerName(next.players, dn))
-        throw new Error(
-          "That player already exists. Select the existing profile.",
-        );
-      const contact = validateContact(profile);
-      next.players[key] = {
-        key,
-        dn,
-        ...contact,
-        total: 0,
-        month: 0,
-        games: 0,
-        best: null,
-        registered: now.toLocaleDateString("en-US", {
-          timeZone: "America/New_York",
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        gameDates: [],
-      };
-    }
+    if (!Object.hasOwn(next.players, key))
+      next.players[key] = newPlayerProfile(next.players, key, profile, now);
     next.tonight = [
       ...tonight,
       {
@@ -83,5 +53,37 @@ export function applyCheckIn(
     players: next.players,
     tonight: next.tonight,
     gameList: next.gameList,
+  };
+}
+
+// Validates a brand-new player for check-in or a late addition to recorded results.
+export function newPlayerProfile(players, key, profile, now = new Date()) {
+  const dn =
+    typeof profile?.dn === "string" ? cleanPlayerName(profile.dn) : null;
+  if (
+    typeof dn !== "string" ||
+    dn.length < 2 ||
+    dn.length > 120 ||
+    dn.toLowerCase() !== key
+  )
+    throw new Error("Please enter a valid player name.");
+  if (hasPlayerName(players, dn))
+    throw new Error("That player already exists. Select the existing profile.");
+  const contact = validateContact(profile);
+  return {
+    key,
+    dn,
+    ...contact,
+    total: 0,
+    month: 0,
+    games: 0,
+    best: null,
+    registered: now.toLocaleDateString("en-US", {
+      timeZone: "America/New_York",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+    gameDates: [],
   };
 }

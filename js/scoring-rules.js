@@ -1,5 +1,7 @@
 import { leagueDateKey } from "./league-date.js";
-export const PT = { 1: 10, 2: 7, 3: 5, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4 };
+// Only the podium earns placement points; every other finisher gets participation.
+export const PT = { 1: 10, 2: 7, 3: 5 };
+export const PLACES = [1, 2, 3];
 // Per-player, per-game ceiling for manual corrections.
 export const MAX_EDITED_POINTS = 100;
 export const ptFor = (p) => PT[p] ?? 1;

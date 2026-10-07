@@ -178,7 +178,7 @@ export function finishSection(state, tonight, players, activeGame) {
       ? `
     <div class="asec" id="finishSection">
       <div class="asec-title">Assign Finish Positions</div>
-      <p class="finish-intro">Assign places 1–8, then submit to award points. Unassigned players receive 1 participation point.</p>
+      <p class="finish-intro">Assign 1st, 2nd and 3rd, then submit to award points. Unassigned players receive 1 participation point.</p>
       <details class="finish-help">
         <summary>Game streak &amp; chip awards</summary>
         <p> Monday, Wednesday, and Thursday games all count. Missing any scheduled game resets the streak. At 5 consecutive games, award the streak chips manually; the next attended scheduled game starts a new 1/5 cycle.</p>
@@ -207,11 +207,6 @@ export function finishSection(state, tonight, players, activeGame) {
             <option value="1">1st — ${ptFor(1)} pts</option>
             <option value="2">2nd — ${ptFor(2)} pts</option>
             <option value="3">3rd — ${ptFor(3)} pts</option>
-            <option value="4">4th — ${ptFor(4)} pts</option>
-            <option value="5">5th — ${ptFor(5)} pts</option>
-            <option value="6">6th — ${ptFor(6)} pts</option>
-            <option value="7">7th — ${ptFor(7)} pts</option>
-            <option value="8">8th — ${ptFor(8)} pts</option>
             <option value="p">Participation — 1 pt</option>
           </select>
           <div class="fpts" id="fptsv_${sn}">— pts</div>
@@ -278,7 +273,7 @@ export function historyRows(history) {
         <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px" class="gh-toggle-lbl">▼ Details</span>
       </button>
       <div style="padding:0 14px 0">${detail}</div>
-      ${h._id && h.results.length ? `<div style="padding:10px 14px"><button class="btn btn-ghost" data-click="adminEditResults" data-arg0="${esc(h._id)}">Edit results</button></div>` : ""}
+      ${h._id ? `<div style="padding:10px 14px"><button class="btn btn-ghost" data-click="adminEditResults" data-arg0="${esc(h._id)}">Edit results</button></div>` : ""}
     </div>`;
       })
       .join("") ||

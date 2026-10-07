@@ -1,5 +1,5 @@
 export * from "./scoring-rules.js";
-import { ptFor, STREAK_TARGET } from "./scoring-rules.js";
+import { ptFor, PLACES, STREAK_TARGET } from "./scoring-rules.js";
 import { calculateStats } from "./stats.js";
 import { atlantaDateKey } from "./league-date.js";
 export function gameAlreadyScored(history, gameId) {
@@ -38,8 +38,8 @@ export function scoreGame({
     const value = stopped ? "p" : positions[checked.key];
     const pos = !value || value === "p" ? "p" : Number(value);
     if (pos !== "p") {
-      if (!Number.isInteger(pos) || pos < 1 || pos > 8)
-        throw new Error("Finishing positions must be between 1 and 8.");
+      if (!PLACES.includes(pos))
+        throw new Error("Finishing positions must be 1st, 2nd or 3rd.");
       if (usedPositions.has(pos))
         throw new Error(
           "Two players share the same finishing position. Fix the positions before submitting.",

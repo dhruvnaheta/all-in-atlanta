@@ -66,6 +66,15 @@ test("new podium results award 10, 7, and 5 points", () => {
     assert.equal(result.players.alice.total, points);
   }
 });
+test("only the top three can be placed; everyone else earns participation", () => {
+  for (const position of [4, 5, 8, 9])
+    assert.throws(
+      () => scoreGame({ ...scoringInput(), positions: { alice: position } }),
+      /1st, 2nd or 3rd/,
+    );
+  const result = scoreGame({ ...scoringInput(), positions: { alice: "p" } });
+  assert.equal(result.history[0].results[0].pts, 1);
+});
 test("a repeated game is rejected, including the stop-game path", () => {
   const input = scoringInput();
   const result = scoreGame(input);

@@ -120,7 +120,7 @@ test("admin check-in, timer pause/resume and scoring preserve persisted state", 
     const { getPlayers, getHistory } = await import("/js/state.js");
     return { p: getPlayers().alice, h: getHistory() };
   });
-  expect(state.p.total).toBe(50);
+  expect(state.p.total).toBe(20);
   expect(state.p.games).toBe(2);
   expect(state.h).toHaveLength(2);
   await page.locator('[data-click="logout"]').click();
@@ -141,7 +141,7 @@ test("stop game asks for finishing order while check-in is open and awards finis
   const player = await page.evaluate(
     async () => (await import("/js/state.js")).getPlayers().alice,
   );
-  expect(player.total).toBe(35);
+  expect(player.total).toBe(20);
 });
 
 test("ending without results requires confirmation and cancel preserves selected positions", async ({
@@ -166,7 +166,7 @@ test("ending without results requires confirmation and cancel preserves selected
     const { getPlayers, getHistory } = await import("/js/state.js");
     return { player: getPlayers().alice, history: getHistory() };
   });
-  expect(state.player.total).toBe(26);
+  expect(state.player.total).toBe(11);
   expect(state.history.some((game) => game.stopped)).toBe(true);
 });
 
@@ -179,12 +179,14 @@ test("remote updates refresh rankings and timer while keeping a registration dra
   await page.locator("#pubNpEmail").fill("draft@example.test");
   await page.evaluate(async () => {
     const { LS } = await import("/js/store.js");
+    const { atlantaDateKey } = await import("/js/league-date.js");
     LS.applyRemote("history", [
       ...LS.get("history"),
       {
         gameId: "remote",
-        date: "Sep 24, 2026",
-        results: [{ key: "alice", pos: 1, pts: 25 }],
+        // Monthly rankings only count games from the current Atlanta month.
+        date: atlantaDateKey(),
+        results: [{ key: "alice", pos: 1, pts: 10 }],
       },
     ]);
     LS.applyRemote("timerState", {
@@ -194,7 +196,7 @@ test("remote updates refresh rankings and timer while keeping a registration dra
       running: true,
     });
   });
-  await expect(page.locator("#home-rankings .pts-pill")).toHaveText("50");
+  await expect(page.locator("#home-rankings .pts-pill")).toHaveText("20");
   await expect(page.locator("#s-games")).toHaveText("2");
   await expect(page.locator("#pubNpEmail")).toHaveValue("draft@example.test");
   await expect(page.locator("#pubNpName")).toHaveText("Draft Player");
@@ -298,7 +300,7 @@ test("profile editor has no aggregate overrides or reset buttons", async ({
     await page.evaluate(
       async () => (await import("/js/state.js")).getPlayers().alice.total,
     ),
-  ).toBe(25);
+  ).toBe(10);
 });
 
 test("page links survive reload and browser history", async ({ page }) => {
@@ -588,6 +590,107 @@ test("admins can correct past results and keep their draft through live updates"
   await expect(editor.locator("select")).toBeEnabled();
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(editor).toBeEmpty();
+});
+
+test("admins can add players who forgot to check in to a played game", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applyRemote("players", {
+      ...LS.get("players"),
+      bob: { key: "bob", dn: "Bob" },
+    });
+    LS.applyRemote("history", [
+      {
+        _id: "past",
+        gameId: "past-game",
+        date: "Sep 3, 2026",
+        stopped: true,
+        results: [{ key: "alice", name: "Alice", pos: "p", pts: 1 }],
+      },
+      { _id: "empty", gameId: "empty-game", date: "Sep 10, 2026", stopped: true, results: [] },
+    ]);
+    const { configureResultCorrections } = await import("/js/results.js");
+    configureResultCorrections(async (request) => {
+      window.correctionRequest = request;
+      return { saved: true };
+    });
+  });
+  await login(page);
+  await expect(
+    page.getByRole("button", { name: "Edit results", exact: true }),
+  ).toHaveCount(2);
+  await page.getByRole("button", { name: "Edit results", exact: true }).last().click();
+  const editor = page.locator("#historyResultsEditor");
+  const search = editor.getByLabel("Add a player who didn't check in");
+  await search.fill("ali");
+  await expect(editor.locator("#historyAddDD")).not.toContainText("Alice");
+  await search.fill("bo");
+  await editor.getByRole("button", { name: /^Bob/ }).click();
+  await expect(search).toHaveValue("");
+  await search.fill("Carol  Smith");
+  await editor.getByRole("button", { name: /Create "Carol Smith"/ }).click();
+  await search.fill("Dan");
+  await search.press("Enter");
+  await editor.getByRole("button", { name: "Remove Dan", exact: true }).click();
+  await expect(editor.getByLabel("Points for Dan")).toHaveCount(0);
+  await editor.locator("select").nth(1).selectOption("1");
+  await expect(editor.getByLabel("Points for Bob", { exact: true })).toHaveValue("10");
+  await editor.getByLabel("Points for Carol Smith", { exact: true }).fill("3");
+  await page.evaluate(async () => {
+    const { renderAdmin } = await import("/js/views/admin.js");
+    renderAdmin();
+  });
+  await expect(editor.getByLabel("Points for Carol Smith", { exact: true })).toHaveValue("3");
+  await editor.getByRole("button", { name: "Save game" }).click();
+  await expect(editor).toBeEmpty();
+  expect(await page.evaluate(() => window.correctionRequest)).toMatchObject({
+    positions: { alice: "p", bob: "1", "carol smith": "p" },
+    points: { alice: 1, bob: 10, "carol smith": 3 },
+    newPlayers: { "carol smith": { dn: "Carol Smith" } },
+  });
+});
+
+test("admins can rename a series and the rankings filter follows", async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const { LS } = await import("/js/store.js");
+    LS.applyRemote("seriesList", [
+      ...LS.get("seriesList"),
+      { id: "s_monday", name: "Wicked Wolf Monday League", venue: "Wicked Wolf", day: 1, time: "8:00 PM" },
+    ]);
+  });
+  await login(page);
+  await page
+    .getByRole("button", { name: "Rename series Wicked Wolf League", exact: true })
+    .click();
+  const input = page.getByLabel("Series name", { exact: true });
+  await expect(input).toBeFocused();
+  await input.fill("Wicked Wolf Monday League");
+  await page.locator("#aconfirm-yes").click();
+  await expect(page.locator("#confirmError")).toHaveText("Another series already uses that name.");
+  await input.fill("  ");
+  await input.press("Enter");
+  await expect(page.locator("#confirmError")).toHaveText("Enter a series name.");
+  await input.fill("Wicked Wolf Thursday League");
+  await input.press("Enter");
+  await expect(page.locator("#aconfirm")).toHaveCount(0);
+  expect(
+    await page.evaluate(async () =>
+      (await import("/js/state.js")).getSeriesList().map((s) => s.name),
+    ),
+  ).toEqual(["Wicked Wolf Thursday League", "Wicked Wolf Monday League"]);
+  await page.evaluate(async () =>
+    (await import("/js/navigation.js")).go("rankings"),
+  );
+  await expect(page.locator("#seriesFilterWrap")).toContainText(
+    "Wicked Wolf Thursday League",
+  );
+  await expect(page.locator("#seriesFilterWrap")).not.toContainText(
+    /Wicked Wolf League/,
+  );
 });
 
 test("duplicate finish errors clear only once the positions are fixed", async ({ page }) => {

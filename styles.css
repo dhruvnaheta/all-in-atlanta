@@ -1480,10 +1480,17 @@ nav {
 #historyResultsEditor .finish-row > span { min-width: 0; overflow-wrap: anywhere; }
 #historyResultsEditor .fsel { min-width: 0; min-height: 44px; }
 #historyResultsEditor > .btn { margin-top: 12px; }
+#historyResultsEditor .history-add-player { margin: 8px 0 16px; }
+#historyResultsEditor .history-add-player .np-label { display: block; margin-bottom: 6px; }
+#historyResultsEditor button.admin-dd-item { width: 100%; border: 0; border-bottom: 1px solid var(--border); background: var(--bg); color: inherit; font: inherit; text-align: left; }
+#historyResultsEditor button.admin-dd-item.is-new { color: var(--green); font-weight: 600; }
+#historyResultsEditor button.admin-dd-item:hover,
+#historyResultsEditor button.admin-dd-item:focus-visible { background: var(--bg2); }
 @media (max-width: 600px) {
   #historyResultsEditor .finish-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 12px; }
   #historyResultsEditor .finish-row > span { grid-column: 1 / -1; }
   #historyResultsEditor .fsel { width: 100%; font-size: 16px; }
+  #historyResultsEditor .finish-row.is-added { grid-template-columns: minmax(0, 1fr) 90px auto; }
 }
 .fpos {
   font-family: "Barlow Condensed", sans-serif;

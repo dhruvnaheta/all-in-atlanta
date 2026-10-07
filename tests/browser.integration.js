@@ -6,6 +6,14 @@ import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { LEAGUE_PATH } from "../js/schema.js";
+// waitForFunction treats a returned Promise as truthy, so poll async checks explicitly.
+async function waitForAsync(target, check, timeout = 10000) {
+  const deadline = Date.now() + timeout;
+  while (!(await target.evaluate(check))) {
+    if (Date.now() > deadline) throw new Error("Timed out waiting for page state.");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
 test(
   "browser loads native data, signs in, persists edits, checks in and finalizes through callables",
   { timeout: 120000 },
@@ -124,7 +132,7 @@ test(
         (route) => route.abort(),
       );
       await productionPage.goto("http://127.0.0.1:4174/");
-      await productionPage.waitForFunction(async () => {
+      await waitForAsync(productionPage, async () => {
         const { getApps } =
           await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
         return getApps().some((app) => app.name === "[DEFAULT]");
@@ -142,7 +150,7 @@ test(
         null,
       );
       await page.reload();
-      await page.waitForFunction(async () =>
+      await waitForAsync(page, async () =>
         (await import("/js/auth.js")).isAdmin(),
       );
       await page.evaluate(async () => {

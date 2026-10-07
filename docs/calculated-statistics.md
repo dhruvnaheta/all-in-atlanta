@@ -23,7 +23,7 @@ backup before removal from Firestore.
   Identical duplicate game/player results count once; conflicting copies fail
   explicitly instead of silently picking an award.
 - Sum recorded `pts`, preserving historical awards. Future games use the existing
-  scoring schedule: 25/18/15/12/10/8/6/4 for places 1–8, otherwise 1 point.
+  scoring schedule: 10/7/5 for places 1–3, otherwise 1 point.
 - Monthly statistics use the game's calendar date and the current month in
   `America/New_York`. They roll over without a reset operation. Monthly ranking
   game counts also cover that month only.

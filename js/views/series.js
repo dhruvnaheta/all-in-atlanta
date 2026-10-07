@@ -43,6 +43,7 @@ export function renderSeriesSection() {
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           ${existing ? `<span style="font-size:12px">Game already scheduled for ${nextLabel}</span>` : `<button class="btn btn-green" style="padding:5px 13px;font-size:12px" data-click="adminLaunchGame" data-arg0="${esc(s.id)}">+ Launch ${nextLabel}</button>`}
+          <button class="btn btn-ghost" data-click="adminRenameSeries" data-arg0="${esc(s.id)}" aria-label="Rename series ${esc(s.name)}">Rename</button>
           <button class="btn btn-ghost" data-click="adminDeleteSeries" data-arg0="${esc(s.id)}" aria-label="Delete series ${esc(s.name)}">Delete series</button>
         </div>
       </div>
@@ -175,6 +176,47 @@ export function adminDeleteGame(id) {
       toast("Game removed from schedule.");
     },
   );
+}
+export function adminRenameSeries(id) {
+  const series = getSeriesList().find((s) => s.id === id);
+  if (!series) return;
+  askConfirm(
+    `Rename "${series.name}"? The rankings filter, schedule and newly launched games will use the new name. Past games keep the name they were played under.`,
+    async () => {
+      const name = input.value.trim();
+      if (!name) throw new Error("Enter a series name.");
+      if (name.length > 120) throw new Error("Series names can be up to 120 characters.");
+      if (
+        getSeriesList().some(
+          (s) => s.id !== id && s.name.toLowerCase() === name.toLowerCase(),
+        )
+      )
+        throw new Error("Another series already uses that name.");
+      if (name === series.name) return;
+      await setSeriesList(
+        getSeriesList().map((s) => (s.id === id ? { ...s, name } : s)),
+      );
+      toast(`Series renamed to "${name}".`);
+      renderAdmin();
+      updateHomeSched();
+    },
+  );
+  const input = document.createElement("input");
+  input.id = "seriesRenameInput";
+  input.className = "np-input";
+  input.type = "text";
+  input.maxLength = 120;
+  input.value = series.name;
+  input.setAttribute("aria-label", "Series name");
+  input.style.cssText = "width:100%;box-sizing:border-box;margin:4px 0 8px";
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    document.getElementById("aconfirm-yes")?.click();
+  });
+  document.getElementById("aconfirm-msg").after(input);
+  input.focus();
+  input.select();
 }
 export function adminDeleteSeries(id) {
   askConfirm(

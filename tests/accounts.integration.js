@@ -233,11 +233,11 @@ test("private accounts and contacts cannot be read by guests or other users; no 
     stranger = env.authenticatedContext("bob").firestore(),
     admin = env.authenticatedContext("admin", { admin: true }).firestore(),
     guest = env.unauthenticatedContext().firestore();
-  await assertSucceeds(getDoc(doc(owner, `${root}/accounts/alice`)));
-  await assertSucceeds(getDoc(doc(stranger, `${root}/accounts/bob`))); // no account yet
+  // Account records are admin-only; players read their profile through the callable.
   await assertSucceeds(getDocs(collection(admin, `${root}/accounts`)));
-  for (const client of [guest, stranger])
+  for (const client of [owner, guest, stranger])
     await assertFails(getDoc(doc(client, `${root}/accounts/alice`)));
+  await assertFails(getDoc(doc(stranger, `${root}/accounts/bob`)));
   await assertFails(getDocs(collection(owner, `${root}/accounts`)));
   for (const client of [owner, stranger, guest])
     await assertFails(getDoc(doc(client, `${root}/playerContacts/p_alice`)));
