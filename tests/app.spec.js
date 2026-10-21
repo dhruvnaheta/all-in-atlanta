@@ -109,7 +109,7 @@ test("admin check-in, timer pause/resume and scoring preserve persisted state", 
     (await import("/js/state.js")).getTimerState(),
   );
   expect(paused.running).toBe(false);
-  expect(paused.pausedRemaining).toBeLessThan(900000);
+  expect(paused.pausedRemaining).toBeLessThan(20 * 60000);
   await page
     .locator('[data-click="adminSetState"][data-arg0="closeRegistration"]')
     .click();
@@ -243,7 +243,8 @@ test("timer updates do not replace a focused registration field and preserve sel
     const { LS } = await import("/js/store.js");
     LS.applyRemote("timerState", {
       levelIdx: 0,
-      levelStartTs: Date.now() - 1800000,
+      // 45 minutes in: two 20-minute levels done, so level 3.
+      levelStartTs: Date.now() - 45 * 60000,
       running: true,
       pausedRemaining: null,
     });

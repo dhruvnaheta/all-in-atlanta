@@ -115,7 +115,11 @@ export async function leagueCommand(db, request, now = new Date()) {
         const timer =
           (await tx.get(ref(`${gamePath}/runtime/timer`))).data() || {};
         const timerState = {
-          ...resetTimer((timer.levelOverrides?.[0] ?? 15) * MIN),
+          ...resetTimer(
+            timer.levelOverrides?.[0] !== undefined
+              ? timer.levelOverrides[0] * MIN
+              : BLIND_LEVELS[0].dur,
+          ),
           revision: (timer.timerState?.revision || 0) + 1,
         };
         set(`${gamePath}/runtime/timer`, { timerState });

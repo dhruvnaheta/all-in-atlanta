@@ -323,3 +323,14 @@ test("legacy whitespace and renamed profiles cannot be recreated", () => {
   const next = applyCheckIn(input, { action: "checkIn", key: "bob  smith" });
   assert.equal(next.tonight[0].key, "bob  smith");
 });
+
+test("default blind structure: 20-minute levels, one 15-minute break, 15-minute late levels", async () => {
+  const { BLIND_LEVELS, MIN } = await import("../js/blind-structure.js");
+  const minutes = BLIND_LEVELS.map((level) =>
+    level.isBreak ? `break ${level.dur / MIN}` : level.dur / MIN,
+  );
+  assert.deepEqual(minutes, [
+    20, 20, 20, 20, 20, "break 15", 20, 20, 20, 20, 20, 15, 15, 15, 15, 15,
+  ]);
+  assert.equal(BLIND_LEVELS.at(-1).label, "50,000 / 100,000");
+});

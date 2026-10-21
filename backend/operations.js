@@ -13,6 +13,7 @@ import { applyCheckIn, newPlayerProfile } from "../js/checkin-model.js";
 import { ptFor, PLACES, MAX_EDITED_POINTS } from "../js/scoring-rules.js";
 import { scoreGame } from "../js/scoring.js";
 import { DEFAULT_STATE } from "../js/sync.js";
+import { BLIND_LEVELS, MIN } from "../js/blind-structure.js";
 
 async function writable(db, tx) {
   const control = await tx.get(db.doc(`${LEAGUE_PATH}/operations/control`));
@@ -289,7 +290,9 @@ export async function finalizeGame(db, request, now = new Date()) {
       levelIdx: 0,
       levelStartTs: null,
       pausedRemaining:
-        (timerSnapshot.data()?.levelOverrides?.[0] ?? 15) * 60000,
+        timerSnapshot.data()?.levelOverrides?.[0] !== undefined
+          ? timerSnapshot.data().levelOverrides[0] * MIN
+          : BLIND_LEVELS[0].dur,
       running: false,
     };
     tx.set(

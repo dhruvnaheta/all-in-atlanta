@@ -117,7 +117,7 @@ test(
       const timerRef = db.doc(`${root}/games/browser-ops/runtime/timer`);
       const timer = (await timerRef.get()).data().timerState;
       await timerRef.set(
-        { timerState: { ...timer, levelStartTs: Date.now() - 31 * 60000 } },
+        { timerState: { ...timer, levelStartTs: Date.now() - 41 * 60000 } },
         { merge: true },
       );
       await expect(page.locator("#tc-blind")).toHaveText("300 / 600");

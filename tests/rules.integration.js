@@ -19,6 +19,7 @@ import {
 import { leagueCommand } from "../backend/commands.js";
 import { advanceTimer, remainingTime } from "../js/timer.js";
 import { LEAGUE_PATH as root } from "../js/schema.js";
+import { BLIND_LEVELS } from "../js/blind-structure.js";
 const checkIn = (
   db,
   request,
@@ -160,6 +161,12 @@ test("launch and activation are atomic, duplicate launch is rejected, and stale 
     (await db.doc(`${root}/games/${active}`).get()).data().registrationOpen,
     true,
   );
+  // Starting a game resets the timer to the default level-one duration.
+  assert.equal(
+    (await db.doc(`${root}/games/${active}/runtime/timer`).get()).data()
+      .timerState.pausedRemaining,
+    BLIND_LEVELS[0].dur,
+  );
 });
 test("timer commands use server timestamps, catch up after reload, and reject stale revisions", async () => {
   const start = await command(
@@ -171,10 +178,10 @@ test("timer commands use server timestamps, catch up after reload, and reject st
   const paused = await command(
     "timer",
     { operation: "pause", revision: 1 },
-    new Date(1000000 + 31 * 60000),
+    new Date(1000000 + 41 * 60000),
   );
   assert.equal(paused.timerState.levelIdx, 2);
-  assert.equal(paused.timerState.pausedRemaining, 14 * 60000);
+  assert.equal(paused.timerState.pausedRemaining, 19 * 60000);
   await assert.rejects(
     command("timer", { operation: "reset", revision: 1 }),
     /changed on another device/,
@@ -186,12 +193,12 @@ test("timer commands use server timestamps, catch up after reload, and reject st
   );
   const projected = advanceTimer(
     resumed.timerState,
-    Array(17).fill(15 * 60000),
+    Array(16).fill(20 * 60000),
     5000000 + 60000,
   );
   assert.equal(
-    remainingTime(projected, 15 * 60000, 5000000 + 60000),
-    13 * 60000,
+    remainingTime(projected, 20 * 60000, 5000000 + 60000),
+    18 * 60000,
   );
 });
 test("concurrent timer control allows one change and rejects the competing revision", async () => {
@@ -376,6 +383,11 @@ test("historical corrections replace points without changing attendance or the a
     new Date("2026-09-24T20:00:00Z"),
   );
   await finalizeGame(db, { gameId: "g", stopped: true });
+  assert.equal(
+    (await db.doc(`${root}/games/g/runtime/timer`).get()).data().timerState
+      .pausedRemaining,
+    BLIND_LEVELS[0].dur,
+  );
   await db.doc(`${root}/settings/current`).set({ activeGameId: "next" });
   const ref = db.doc(`${root}/history/game_g`);
   const before = (await ref.get()).data();
