@@ -1,9 +1,8 @@
-import { standings } from "../standings.js";
+import { standings, topRanked } from "../standings.js";
 import { esc } from "../dom.js";
 import {
   getPlayers,
   getSeriesList,
-  _getTonight,
   getLeagueStats,
 } from "../state.js";
 export function rankTable(rows, empty, showStreak = true) {
@@ -61,8 +60,8 @@ export function renderRankings() {
     if (el) el.innerHTML = h;
   };
   renderSeriesFilter();
-  const m = getRows("month"),
-    a = getRows("total");
+  const m = topRanked(getRows("month")),
+    a = topRanked(getRows("total"));
   s("monthly-rankings", rankTable(m, "No results yet"));
   s("alltime-rankings", rankTable(a, "No results yet"));
   // Home page always shows combined monthly top 5, regardless of rankings page filter
@@ -77,7 +76,6 @@ export function renderRankings() {
 }
 export function updateStats() {
   const p = getPlayers(),
-    t = _getTonight(),
     stats = getLeagueStats();
   const s = (id, v) => {
     const el = document.getElementById(id);
@@ -85,5 +83,4 @@ export function updateStats() {
   };
   s("s-players", Object.keys(p).length);
   s("s-games", stats.totals.games);
-  s("s-tonight", t.length);
 }

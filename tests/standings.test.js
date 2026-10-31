@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { standings } from "../js/standings.js";
+import { standings, topRanked } from "../js/standings.js";
 import {
   isCheckInOpen,
   upcomingGames,
@@ -89,4 +89,49 @@ test("game date labels preserve the calendar date across storage formats", async
   assert.equal(formatLeagueDate("2026-10-01"), "Oct 1, 2026");
   assert.equal(formatLeagueDate("Oct 1, 2026"), "Oct 1, 2026");
   assert.equal(formatLeagueDate("2026-10-03"), "Oct 3, 2026");
+});
+test("rankings show the top 50 places, including everyone tied at the cutoff", () => {
+  // 60 players with distinct points: ranks 1-60, only the first 50 are shown.
+  const distinct = Object.fromEntries(
+    Array.from({ length: 60 }, (_, i) => [`p${i}`, { total: 100 - i }]),
+  );
+  const rows = standings(distinct);
+  assert.equal(rows.length, 60);
+  assert.equal(topRanked(rows).length, 50);
+  assert.equal(topRanked(rows).at(-1).rank, 50);
+  // 49 leaders, then 5 players tied for 50th, then more below: all 54 are shown.
+  const tied = Object.fromEntries([
+    ...Array.from({ length: 49 }, (_, i) => [`lead${i}`, { total: 200 - i }]),
+    ...Array.from({ length: 5 }, (_, i) => [`tie${i}`, { total: 10 }]),
+    ...Array.from({ length: 6 }, (_, i) => [`rest${i}`, { total: 5 - i / 10 }]),
+  ]);
+  const shown = topRanked(standings(tied));
+  assert.equal(shown.length, 54);
+  assert.ok(shown.slice(-5).every((row) => row.rank === 50));
+  // A tie that starts above 50 and runs past it is shown in full.
+  const crossing = Object.fromEntries([
+    ...Array.from({ length: 47 }, (_, i) => [`lead${i}`, { total: 200 - i }]),
+    ...Array.from({ length: 10 }, (_, i) => [`tie${i}`, { total: 10 }]),
+    ["last", { total: 1 }],
+  ]);
+  const crossingShown = topRanked(standings(crossing));
+  assert.equal(crossingShown.length, 57);
+  assert.ok(crossingShown.slice(-10).every((row) => row.rank === 48));
+  // Fewer than 50 ranked players: everyone is shown, including 1-point players.
+  assert.equal(topRanked(standings({ a: { total: 3 }, b: { total: 1 } })).length, 2);
+  // A big tie of 1-point players at the cutoff is left out (this month's case:
+  // 48 players with 2+ points, then 62 tied on 1 point at rank 49).
+  const onePoint = Object.fromEntries([
+    ...Array.from({ length: 48 }, (_, i) => [`lead${i}`, { total: 100 - i }]),
+    ...Array.from({ length: 62 }, (_, i) => [`one${i}`, { total: 1 }]),
+  ]);
+  const onePointShown = topRanked(standings(onePoint));
+  assert.equal(onePointShown.length, 48);
+  assert.ok(onePointShown.every((row) => row.pts > 1));
+  // A small 1-point tie that fits within 50 is still shown.
+  const smallTie = Object.fromEntries([
+    ...Array.from({ length: 48 }, (_, i) => [`lead${i}`, { total: 100 - i }]),
+    ...Array.from({ length: 2 }, (_, i) => [`one${i}`, { total: 1 }]),
+  ]);
+  assert.equal(topRanked(standings(smallTie)).length, 50);
 });

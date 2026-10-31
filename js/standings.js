@@ -56,3 +56,13 @@ export function standings(
   });
   return rows;
 }
+
+// Rankings pages list the top places only; tied players share a rank, so a tie
+// at the cutoff shows everyone in it. The exception is players with a single
+// point (one participation), whose tie can be huge: they are left out when they
+// would take the table past the limit. Hidden players keep all their results.
+export const RANKINGS_SHOWN = 50;
+export function topRanked(rows, limit = RANKINGS_SHOWN) {
+  const shown = rows.filter((row) => row.rank <= limit);
+  return shown.length > limit ? shown.filter((row) => row.pts > 1) : shown;
+}

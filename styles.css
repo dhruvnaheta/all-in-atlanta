@@ -340,7 +340,7 @@ nav {
   max-width: 1100px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   padding: 0 1.5rem;
 }
 .stat-cell {
@@ -2079,6 +2079,52 @@ footer {
 .fschedule {
   font-size: 14px;
 }
+.fcontact-title {
+  margin-top: 26px;
+}
+.fcol .fcontact {
+  gap: 6px;
+}
+.fcontact a {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color 0.15s;
+}
+.fcontact a:hover,
+.fcontact a:focus-visible {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.fcontact a:focus-visible {
+  outline: 2px solid var(--gold-l);
+  outline-offset: 4px;
+}
+.fcol .fsocial {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 4px;
+}
+.fsocial a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.fsocial svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.fsocial svg .fill {
+  fill: currentColor;
+  stroke: none;
+}
 .fbot {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 18px;
@@ -2185,8 +2231,8 @@ footer {
 }
 
 @media (max-width: 680px) {
-  .stats-inner {
-    grid-template-columns: repeat(2, 1fr);
+  .stat-cell {
+    padding: 16px 8px;
   }
   .ag {
     grid-template-columns: 1fr;
